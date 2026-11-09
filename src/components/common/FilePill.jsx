@@ -5,7 +5,7 @@ import { getFileType, getFileIcon } from '../../utils/fileUtils';
 import { downloadFileSafely, openFileInNewTab } from '../../services/storageHelper';
 import DocumentPreviewModal from './DocumentPreviewModal';
 
-const FilePill = ({ fileName, url, preferModal = false }) => {
+const FilePill = ({ fileName, url, preferModal = true }) => {
   const [modalOpen, setModalOpen] = useState(false);
 
   if (!fileName) return null;
@@ -16,12 +16,15 @@ const FilePill = ({ fileName, url, preferModal = false }) => {
     if (url) {
       e.preventDefault();
       e.stopPropagation();
-      if (preferModal) {
-        setModalOpen(true);
-      } else {
-        // Mở trực tiếp sang Tab mới toàn màn hình hoặc Drive
-        openFileInNewTab(url, fileName);
-      }
+      setModalOpen(true);
+    }
+  };
+
+  const handleOpenExternal = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (url) {
+      openFileInNewTab(url, fileName);
     }
   };
 
@@ -45,7 +48,7 @@ const FilePill = ({ fileName, url, preferModal = false }) => {
           gap: 6,
           userSelect: 'none',
         }}
-        title={url ? `Bấm để mở xem "${fileName}" trong Tab mới (hoặc bấm 📥 để tải về)` : fileName}
+        title={url ? `Bấm để mở xem trực tiếp "${fileName}" (hoặc bấm ↗ để mở tab mới, 📥 để tải về)` : fileName}
       >
         <span style={{
           fontSize: 10,
@@ -64,12 +67,17 @@ const FilePill = ({ fileName, url, preferModal = false }) => {
         {url && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 2 }}>
             <span
-              title="Mở trong Tab mới"
+              onClick={handleOpenExternal}
+              title="Mở sang Tab mới độc lập"
               style={{
                 fontSize: 11,
                 opacity: 0.7,
                 cursor: 'pointer',
+                padding: '0 2px',
+                transition: 'opacity 0.2s',
               }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')}
             >
               ↗
             </span>

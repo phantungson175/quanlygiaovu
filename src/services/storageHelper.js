@@ -12,6 +12,14 @@ export const isGoogleDriveUrl = (url) => {
 };
 
 /**
+ * Kiểm tra xem URL có phải liên kết Thư mục (Folder) Google Drive không
+ */
+export const isGoogleDriveFolderUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  return url.includes('drive.google.com') && url.includes('/folders/');
+};
+
+/**
  * Trích xuất File ID từ link Google Drive bất kỳ
  */
 export const extractGoogleDriveFileId = (url) => {
@@ -302,8 +310,16 @@ export const resolveFileForPreview = async (fileUrl, fileName) => {
   if (!fileUrl) return null;
 
   try {
-    // 1. Tệp Google Drive -> Trả về link Embed Preview
+    // 1. Tệp Google Drive -> Trả về link Embed Preview (hoặc link Folder)
     if (isGoogleDriveUrl(fileUrl)) {
+      if (isGoogleDriveFolderUrl(fileUrl)) {
+        return {
+          previewUrl: fileUrl,
+          isBlob: false,
+          isGoogleDriveFolder: true,
+          mimeType: 'folder',
+        };
+      }
       return {
         previewUrl: getGoogleDrivePreviewUrl(fileUrl),
         isBlob: false,

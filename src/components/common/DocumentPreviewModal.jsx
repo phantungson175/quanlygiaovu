@@ -312,6 +312,40 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
                 📥 Vẫn thử tải tệp về máy
               </button>
             </div>
+          ) : resolved?.isGoogleDriveFolder ? (
+            /* THẺ THÔNG BÁO CHO THƯ MỤC GOOGLE DRIVE */
+            <div
+              style={{
+                maxWidth: 540,
+                textAlign: 'center',
+                padding: '40px 24px',
+                background: '#ffffff',
+                borderRadius: 12,
+                boxShadow: '0 10px 25px rgba(0,0,0,0.06)',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <div style={{ fontSize: 52, marginBottom: 14 }}>📁</div>
+              <h3 style={{ fontSize: 18, color: '#0f172a', marginBottom: 8, wordBreak: 'break-word' }}>
+                {fileName || 'Thư mục Google Drive'}
+              </h3>
+              <p style={{ color: '#475569', fontSize: 13.5, lineHeight: 1.6, marginBottom: 20 }}>
+                Bạn đã gắn liên kết tới <strong>nguyên một Thư mục</strong> Google Drive.
+                Vì thư mục chứa nhiều tệp con, Google không hỗ trợ nhúng toàn bộ thư mục vào khung xem trực tiếp.
+                <br />
+                <span style={{ fontSize: 12.5, color: '#166534', fontWeight: 600, display: 'block', marginTop: 8 }}>
+                  💡 Mẹo: Để xem trước tài liệu (PDF/Ảnh/Word) trực tiếp trong khung này, bạn hãy vào thư mục trên Drive $\to$ bấm chuột phải vào chính tệp tài liệu đó $\to$ chọn Chia sẻ.
+                </span>
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => window.open(url, '_blank')}
+                style={{ background: '#2563eb', padding: '10px 20px', fontWeight: 600 }}
+              >
+                ↗ Mở thư mục trên Google Drive
+              </button>
+            </div>
           ) : (fileType === 'pdf' || fileType === 'gdrive' || resolved?.isGoogleDrive) ? (
             /* TRÌNH XEM PDF & GOOGLE DRIVE TRỰC TIẾP */
             <iframe

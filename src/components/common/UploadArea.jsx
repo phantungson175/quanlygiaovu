@@ -2,7 +2,7 @@
 // Khu vực tải file đa phương thức: Hỗ trợ Upload tệp từ máy tính & Nhúng link Google Drive 0đ
 import { useRef, useState } from 'react';
 import { validateFileType, validateFileSize } from '../../utils/fileUtils';
-import { isGoogleDriveUrl } from '../../services/storageHelper';
+import { isGoogleDriveUrl, isGoogleDriveFolderUrl } from '../../services/storageHelper';
 import toast from 'react-hot-toast';
 
 const UploadArea = ({
@@ -60,7 +60,11 @@ const UploadArea = ({
     };
 
     onFileSelect([linkFileObj]);
-    toast.success('Đã gắn liên kết lưu trữ Google Drive thành công!');
+    if (isGoogleDriveFolderUrl(trimmedUrl)) {
+      toast('💡 Bạn đang gắn link Thư mục. Để xem trước nội dung trực tiếp, bạn nên copy link của từng tệp bên trong thư mục nhé!', { icon: 'ℹ️', duration: 5500 });
+    } else {
+      toast.success('Đã gắn liên kết tài liệu Google Drive thành công!');
+    }
   };
 
   const handleRemoveFile = (indexToRemove) => {
