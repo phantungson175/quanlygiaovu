@@ -1,0 +1,52 @@
+// src/services/scoreService.js
+import {
+  collection, addDoc, deleteDoc,
+  doc, getDocs, orderBy, query, serverTimestamp,
+} from 'firebase/firestore';
+import { uploadFileSafely } from './storageHelper';
+import { db } from './firebase';
+import { logAction } from './auditService';
+
+const COL = 'scores';
+
+export const getScores = async () => {
+  const q = query(collection(db, COL), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+export const uploadScore = async (file, subjectName, tag, user, academicYear, folderId = null, folderName = '') => {
+  const { fileUrl, fileName: uploadedFileName } = await uploadFileSafely('scores', file);
+  const curY = new Date().getFullYear();
+  const defYear = `${curY - 1}-${curY}`;
+
+  const finalFileName = uploadedFileName || file.fileName || file.name || 'Tài liệu bảng điểm';
+  const finalSize = file.size || 0;
+  const finalType = finalFileName.includes('.') ? finalFileName.split('.').pop().toLowerCase() : 'gdrive';
+
+  const docRef = await addDoc(collection(db, COL), {
+    fileName: finalFileName,
+    fileUrl,
+    fileSize: finalSize,
+    fileType: finalType,
+    subjectName,
+    tag: tag || folderName || 'Chung',
+    academicYear: academicYear || defYear,
+    folderId: folderId || null,
+    folderName: folderName || '',
+    createdAt: serverTimestamp(),
+  });
+
+  await logAction({
+    action: 'upload',
+    module: 'Điểm',
+    detail: `Upload: ${finalFileName} (Năm: ${academicYear || defYear}${folderName ? `, Thư mục: ${folderName}` : ''})`,
+    user,
+  });
+  return docRef.id;
+};
+
+export const deleteScore = async (id, fileName, user) => {
+  await deleteDoc(doc(db, COL, id));
+  await logAction({ action: 'delete', module: 'Điểm', detail: `Xóa: ${fileName}`, user });
+};
