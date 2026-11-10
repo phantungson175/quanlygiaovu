@@ -103,7 +103,7 @@ const DashboardPage = ({ onNavigate }) => {
       {/* Welcome Banner */}
       <div className="dashboard-welcome">
         <div>
-          <h2>{greeting()}, {user?.displayName || 'Cán bộ Giáo vụ'}</h2>
+          <h2>{greeting()}, {user?.displayName || 'Cán bộ'}</h2>
           <p>{today} · Phòng Quản lý Đào tạo & Giáo vụ</p>
         </div>
       </div>

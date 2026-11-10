@@ -99,7 +99,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
               </div>
               <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'center' }}>
                 <span className={`badge ${isAdmin ? 'badge-danger' : 'badge-primary'}`}>
-                  {isAdmin ? 'Quản trị viên (Admin)' : 'Cán bộ Giáo vụ'}
+                  {isAdmin ? 'Quản trị viên (Admin)' : 'Cán bộ'}
                 </span>
                 {profile?.createdAt && (
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>

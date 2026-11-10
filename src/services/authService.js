@@ -55,7 +55,7 @@ export const registerWithEmail = async (email, password, displayName, extraData 
   }
 
   // Tự động phân quyền: Nếu là tài khoản đầu tiên trong hệ thống, cấp quyền Quản trị viên
-  let role = 'Cán bộ Giáo vụ';
+  let role = 'Cán bộ';
   try {
     const snap = await getDocs(collection(db, 'users'));
     if (snap.empty) {
@@ -140,7 +140,7 @@ export const getUserProfile = async (uid) => {
       return data;
     } else if (auth.currentUser) {
       // Nếu chưa có bản ghi Firestore (do user login Google hoặc tài khoản cũ)
-      let role = 'Cán bộ Giáo vụ';
+      let role = 'Cán bộ';
       try {
         const usersSnap = await getDocs(collection(db, 'users'));
         if (usersSnap.empty || !usersSnap.docs.some(d => d.data().role === 'Quản trị viên' || d.data().role === 'admin')) {

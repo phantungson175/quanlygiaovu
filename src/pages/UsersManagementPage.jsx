@@ -29,7 +29,7 @@ const UsersManagementPage = () => {
     staffId: '',
     phone: '',
     department: '',
-    role: 'Cán bộ Giáo vụ',
+    role: 'Cán bộ',
     status: 'active',
   });
   const [savingEdit, setSavingEdit] = useState(false);
@@ -90,7 +90,7 @@ const UsersManagementPage = () => {
     }
 
     const currentIsAdmin = targetUser.role === 'Quản trị viên' || targetUser.role === 'admin';
-    const newRole = currentIsAdmin ? 'Cán bộ Giáo vụ' : 'Quản trị viên';
+    const newRole = currentIsAdmin ? 'Cán bộ' : 'Quản trị viên';
 
     const ok = await confirm({
       title: 'Xác nhận thay đổi phân quyền',
@@ -175,7 +175,7 @@ const UsersManagementPage = () => {
       staffId: sId,
       phone: targetUser.phone || '',
       department: targetUser.department || 'Phòng Quản lý Đào tạo',
-      role: targetUser.role === 'admin' ? 'Quản trị viên' : (targetUser.role || 'Cán bộ Giáo vụ'),
+      role: (targetUser.role === 'Quản trị viên' || targetUser.role === 'admin') ? 'Quản trị viên' : 'Cán bộ',
       status: targetUser.status || 'active',
     });
     setEditModalOpen(true);
@@ -210,7 +210,7 @@ const UsersManagementPage = () => {
       <div className="stat-grid">
         <StatCard num={stats.total} label="Tổng số tài khoản" variant="primary" />
         <StatCard num={stats.admins} label="Quản trị viên (Admin)" variant="danger" />
-        <StatCard num={stats.staff} label="Cán bộ Giáo vụ" variant="info" />
+        <StatCard num={stats.staff} label="Cán bộ" variant="info" />
         <StatCard num={stats.locked} label="Tài khoản bị khóa" variant="warning" />
       </div>
 
@@ -231,7 +231,7 @@ const UsersManagementPage = () => {
           >
             <option value="all">Tất cả vai trò</option>
             <option value="admin">Quản trị viên</option>
-            <option value="staff">Cán bộ Giáo vụ</option>
+            <option value="staff">Cán bộ</option>
           </select>
 
           <select
@@ -302,7 +302,7 @@ const UsersManagementPage = () => {
                       <td>{u.phone || '—'}</td>
                       <td style={{ textAlign: 'center' }}>
                         <span className={`badge ${isAdmin ? 'badge-danger' : 'badge-primary'}`}>
-                          {isAdmin ? 'Quản trị viên' : 'Cán bộ Giáo vụ'}
+                          {isAdmin ? 'Quản trị viên' : 'Cán bộ'}
                         </span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -329,7 +329,7 @@ const UsersManagementPage = () => {
                           className="btn btn-outline btn-xs"
                           onClick={() => handleToggleRole(u)}
                           disabled={isCurrent}
-                          title={isAdmin ? 'Chuyển về Cán bộ Giáo vụ' : 'Cấp quyền Quản trị viên'}
+                          title={isAdmin ? 'Chuyển về Cán bộ' : 'Cấp quyền Quản trị viên'}
                         >
                           {isAdmin ? 'Hạ quyền Cán bộ' : 'Cấp quyền Admin'}
                         </button>
@@ -429,7 +429,7 @@ const UsersManagementPage = () => {
                   onChange={e => setEditForm(p => ({ ...p, role: e.target.value }))}
                   disabled={editingUser?.uid === user.uid || savingEdit}
                 >
-                  <option value="Cán bộ Giáo vụ">Cán bộ Giáo vụ</option>
+                  <option value="Cán bộ">Cán bộ</option>
                   <option value="Quản trị viên">Quản trị viên (Admin)</option>
                 </select>
                 {editingUser?.uid === user.uid && (

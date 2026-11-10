@@ -117,7 +117,7 @@ const Topbar = ({
                     width: 'fit-content',
                   }}
                 >
-                  {isAdmin ? 'Quản trị viên' : 'Cán bộ Giáo vụ'}
+                  {isAdmin ? 'Quản trị viên' : 'Cán bộ'}
                 </span>
                 {profile?.staffId && (
                   <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: 2 }}>

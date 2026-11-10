@@ -97,7 +97,7 @@ const Sidebar = ({ currentPage, onNavigate, badges = {}, mobileOpen, onCloseMobi
           </div>
         )}
         <div style={{ marginTop: 4, display: 'inline-block', fontSize: 11, padding: '2px 8px', borderRadius: 10, background: isAdmin ? 'rgba(239, 68, 68, 0.25)' : 'rgba(59, 130, 246, 0.25)', color: isAdmin ? '#fca5a5' : '#93c5fd' }}>
-          {isAdmin ? 'Quản trị viên (Admin)' : 'Cán bộ Giáo vụ'}
+          {isAdmin ? 'Quản trị viên (Admin)' : 'Cán bộ'}
         </div>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
           Hệ thống Giáo vụ · {new Date().getFullYear()}
