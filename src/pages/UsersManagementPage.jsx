@@ -402,7 +402,6 @@ const UsersManagementPage = () => {
                 <input
                   type="tel"
                   className="form-control"
-                  placeholder="0912 345 678"
                   value={editForm.phone}
                   onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))}
                   disabled={savingEdit}
@@ -415,7 +414,6 @@ const UsersManagementPage = () => {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Phòng Quản lý Đào tạo / Khoa Công nghệ Thông tin"
                 value={editForm.department}
                 onChange={e => setEditForm(p => ({ ...p, department: e.target.value }))}
                 disabled={savingEdit}

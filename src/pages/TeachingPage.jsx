@@ -878,15 +878,11 @@ const TeachingPage = () => {
           <label className="form-label">Tên thư mục <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="Bộ môn Toán, Bộ môn CNTT, Học kỳ 1..."
             value={newFolderName}
             onChange={e => setNewFolderName(e.target.value)}
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); }}
           />
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-            💡 Bạn có thể đặt tên thư mục theo Bộ môn, Tổ chuyên môn, hoặc Học kỳ.
-          </p>
         </div>
       </Modal>
 
@@ -932,7 +928,6 @@ const TeachingPage = () => {
           <label className="form-label">Năm học mới <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="2027-2028, 2028-2029"
             value={newYearInput}
             onChange={e => setNewYearInput(e.target.value)}
             autoFocus
@@ -973,7 +968,7 @@ const TeachingPage = () => {
           </div>
           <div className="form-group" style={{ flex: 1.4 }}>
             <label className="form-label">Họ tên Giảng viên <span className="required">*</span></label>
-            <input className="form-control" placeholder="Nguyễn Thị Hương" value={form.lecturerName} onChange={e => setF('lecturerName', e.target.value)} />
+            <input className="form-control" value={form.lecturerName} onChange={e => setF('lecturerName', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Năm học <span className="required">*</span></label>
@@ -991,12 +986,12 @@ const TeachingPage = () => {
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Bộ môn <span className="required">*</span></label>
-            <input className="form-control" placeholder="Bộ môn Toán" value={form.department} onChange={e => setF('department', e.target.value)} />
+            <input className="form-control" value={form.department} onChange={e => setF('department', e.target.value)} />
           </div>
           {tab === 'contract' && (
             <div className="form-group">
               <label className="form-label">Môn học <span className="required">*</span></label>
-              <input className="form-control" placeholder="Toán cao cấp A2" value={form.subject} onChange={e => setF('subject', e.target.value)} />
+              <input className="form-control" value={form.subject} onChange={e => setF('subject', e.target.value)} />
             </div>
           )}
         </div>
@@ -1014,7 +1009,7 @@ const TeachingPage = () => {
         ) : (
           <div className="form-group" style={{ marginBottom: 14 }}>
             <label className="form-label">Số giờ giảng <span className="required">*</span></label>
-            <input className="form-control" type="number" min="0" placeholder="45" value={form.hours} onChange={e => setF('hours', parseInt(e.target.value) || 0)} />
+            <input className="form-control" type="number" min="0" value={form.hours} onChange={e => setF('hours', parseInt(e.target.value) || 0)} />
           </div>
         )}
         <div className="form-group">

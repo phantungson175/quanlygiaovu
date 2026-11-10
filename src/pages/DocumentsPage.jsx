@@ -779,15 +779,11 @@ const DocumentsPage = () => {
           <label className="form-label">Tên thư mục <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="Quyết định, Công văn chỉ đạo, Tờ trình..."
             value={newFolderName}
             onChange={e => setNewFolderName(e.target.value)}
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); }}
           />
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-            💡 Đặt tên thư mục theo loại văn bản hoặc phòng ban phụ trách tùy ý bạn.
-          </p>
         </div>
       </Modal>
 
@@ -833,7 +829,6 @@ const DocumentsPage = () => {
           <label className="form-label">Năm văn bản <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="2027, 2028"
             value={newYearInput}
             onChange={e => setNewYearInput(e.target.value)}
             autoFocus
@@ -860,7 +855,7 @@ const DocumentsPage = () => {
         <div className="form-row">
           <div className="form-group" style={{ flex: 1.4 }}>
             <label className="form-label">Số ký hiệu văn bản <span className="required">*</span></label>
-            <input className="form-control" placeholder="125/CV-BGDDT" value={form.refNo} onChange={e => setF('refNo', e.target.value)} />
+            <input className="form-control" value={form.refNo} onChange={e => setF('refNo', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Ngày văn bản <span className="required">*</span></label>
@@ -881,7 +876,6 @@ const DocumentsPage = () => {
             <input
               type="number"
               className="form-control"
-              placeholder="2026"
               value={form.year}
               onChange={e => setF('year', e.target.value)}
             />
@@ -899,24 +893,24 @@ const DocumentsPage = () => {
         {tab === 'incoming' ? (
           <div className="form-group" style={{ marginBottom: 14 }}>
             <label className="form-label">Nơi gửi <span className="required">*</span></label>
-            <input className="form-control" placeholder="Bộ Giáo dục & Đào tạo" value={form.sender} onChange={e => setF('sender', e.target.value)} />
+            <input className="form-control" value={form.sender} onChange={e => setF('sender', e.target.value)} />
           </div>
         ) : (
           <div className="form-group" style={{ marginBottom: 14 }}>
             <label className="form-label">Nơi nhận <span className="required">*</span></label>
-            <input className="form-control" placeholder="Phòng Đào tạo - ĐHQG" value={form.recipient} onChange={e => setF('recipient', e.target.value)} />
+            <input className="form-control" value={form.recipient} onChange={e => setF('recipient', e.target.value)} />
           </div>
         )}
 
         <div className="form-group" style={{ marginBottom: 14 }}>
           <label className="form-label">Trích yếu nội dung <span className="required">*</span></label>
-          <textarea className="form-control" rows={3} placeholder="Nhập trích yếu nội dung văn bản..." value={form.summary} onChange={e => setF('summary', e.target.value)} />
+          <textarea className="form-control" rows={3} value={form.summary} onChange={e => setF('summary', e.target.value)} />
         </div>
 
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Người phụ trách xử lý</label>
-            <input className="form-control" placeholder="Nguyễn Văn A" value={form.assignee} onChange={e => setF('assignee', e.target.value)} />
+            <input className="form-control" value={form.assignee} onChange={e => setF('assignee', e.target.value)} />
           </div>
           <div className="form-group">
             <label className="form-label">Hạn xử lý</label>
@@ -937,7 +931,7 @@ const DocumentsPage = () => {
 
         <div className="form-group">
           <label className="form-label">Ghi chú</label>
-          <textarea className="form-control" rows={2} placeholder="Ghi chú thêm..." value={form.notes} onChange={e => setF('notes', e.target.value)} />
+          <textarea className="form-control" rows={2} value={form.notes} onChange={e => setF('notes', e.target.value)} />
         </div>
       </Modal>
 

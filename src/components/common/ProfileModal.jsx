@@ -118,7 +118,6 @@ const ProfileModal = ({ isOpen, onClose }) => {
             <input
               type="text"
               className="form-control"
-              placeholder="Nguyễn Văn A"
               value={form.displayName}
               onChange={e => setForm(p => ({ ...p, displayName: e.target.value }))}
               required
@@ -143,7 +142,6 @@ const ProfileModal = ({ isOpen, onClose }) => {
               <input
                 type="tel"
                 className="form-control"
-                placeholder="0912 345 678"
                 value={form.phone}
                 onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                 disabled={saving}
@@ -156,7 +154,6 @@ const ProfileModal = ({ isOpen, onClose }) => {
             <input
               type="text"
               className="form-control"
-              placeholder="Phòng Quản lý Đào tạo / Khoa Công nghệ Thông tin"
               value={form.department}
               onChange={e => setForm(p => ({ ...p, department: e.target.value }))}
               disabled={saving}

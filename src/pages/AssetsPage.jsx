@@ -788,15 +788,11 @@ const AssetsPage = () => {
           <label className="form-label">Tên thư mục <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="Phòng máy 301, Hội trường lớn, Khoa CNTT..."
             value={newFolderName}
             onChange={e => setNewFolderName(e.target.value)}
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); }}
           />
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-            💡 Bạn có thể đặt tên thư mục tùy ý theo phòng ban, khu vực hoặc danh mục tài sản.
-          </p>
         </div>
       </Modal>
 
@@ -842,7 +838,6 @@ const AssetsPage = () => {
           <label className="form-label">Năm mới <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="2027, 2028"
             value={newYearInput}
             onChange={e => setNewYearInput(e.target.value)}
             autoFocus
@@ -877,11 +872,11 @@ const AssetsPage = () => {
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Mã tài sản <span className="required">*</span></label>
-            <input className="form-control" placeholder="TS-001" value={form.code} onChange={e => setF('code', e.target.value)} />
+            <input className="form-control" value={form.code} onChange={e => setF('code', e.target.value)} />
           </div>
           <div className="form-group">
             <label className="form-label">Tên tài sản <span className="required">*</span></label>
-            <input className="form-control" placeholder="Máy chiếu Epson EB-X41" value={form.name} onChange={e => setF('name', e.target.value)} />
+            <input className="form-control" value={form.name} onChange={e => setF('name', e.target.value)} />
           </div>
         </div>
         <div className="form-row">
@@ -897,7 +892,7 @@ const AssetsPage = () => {
           </div>
           <div className="form-group" style={{ flex: 1.5 }}>
             <label className="form-label">Phòng / Nơi sử dụng</label>
-            <input className="form-control" placeholder="Phòng A101" value={form.room} onChange={e => setF('room', e.target.value)} />
+            <input className="form-control" value={form.room} onChange={e => setF('room', e.target.value)} />
           </div>
         </div>
         <div className="form-row">
@@ -920,14 +915,13 @@ const AssetsPage = () => {
             <input
               type="number"
               className="form-control"
-              placeholder="2026"
               value={form.year}
               onChange={e => setF('year', e.target.value)}
             />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Khấu hao (tháng) <span className="required">*</span></label>
-            <input className="form-control" type="number" min="1" placeholder="36" value={form.depreciationMonths} onChange={e => setF('depreciationMonths', parseInt(e.target.value) || 36)} />
+            <input className="form-control" type="number" min="1" value={form.depreciationMonths} onChange={e => setF('depreciationMonths', parseInt(e.target.value) || 36)} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Tình trạng</label>
@@ -949,7 +943,7 @@ const AssetsPage = () => {
 
         <div className="form-group">
           <label className="form-label">Ghi chú / Mô tả</label>
-          <textarea className="form-control" rows={2} placeholder="Mô tả thêm về tài sản (nếu có)..." value={form.notes} onChange={e => setF('notes', e.target.value)} />
+          <textarea className="form-control" rows={2} value={form.notes} onChange={e => setF('notes', e.target.value)} />
         </div>
       </Modal>
 

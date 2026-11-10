@@ -589,7 +589,6 @@ const PrinterHotFolderModal = ({
                 className="form-control"
                 value={customTitle}
                 onChange={e => setCustomTitle(e.target.value)}
-                placeholder="Nhập trích yếu nội dung..."
                 required
                 disabled={savingSingle}
               />
@@ -602,7 +601,6 @@ const PrinterHotFolderModal = ({
                 className="form-control"
                 value={customRefNo}
                 onChange={e => setCustomRefNo(e.target.value)}
-                placeholder="123/QĐ-ĐH..."
                 disabled={savingSingle}
               />
             </div>
@@ -614,7 +612,6 @@ const PrinterHotFolderModal = ({
                 rows={2}
                 value={customNotes}
                 onChange={e => setCustomNotes(e.target.value)}
-                placeholder="Ghi chú về văn bản..."
                 disabled={savingSingle}
               />
             </div>

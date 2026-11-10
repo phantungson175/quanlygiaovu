@@ -956,15 +956,11 @@ const ExpertsPage = () => {
           <label className="form-label">Tên thư mục <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="Khoa CNTT - Học kỳ 1, Chuyên gia Nước ngoài, Viện Cơ khí..."
             value={newFolderName}
             onChange={e => setNewFolderName(e.target.value)}
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); }}
           />
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-            💡 Bạn có thể đặt tên thư mục theo Khoa, Đợt thỉnh giảng hoặc nhóm chuyên môn.
-          </p>
         </div>
       </Modal>
 
@@ -1010,7 +1006,6 @@ const ExpertsPage = () => {
           <label className="form-label">Năm mới <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="2027, 2028"
             value={newYearInput}
             onChange={e => setNewYearInput(e.target.value)}
             autoFocus
@@ -1059,15 +1054,15 @@ const ExpertsPage = () => {
           </div>
           <div className="form-group" style={{ flex: 2 }}>
             <label className="form-label">Họ và tên <span className="required">*</span></label>
-            <input className="form-control" placeholder="Nhập họ và tên đầy đủ" value={form.name} onChange={e => setF('name', e.target.value)} required />
+            <input className="form-control" value={form.name} onChange={e => setF('name', e.target.value)} required />
           </div>
           <div className="form-group" style={{ flex: 1.3 }}>
             <label className="form-label">Số CCCD</label>
-            <input className="form-control" placeholder="12 chữ số" value={form.cccd} onChange={e => setF('cccd', e.target.value)} />
+            <input className="form-control" value={form.cccd} onChange={e => setF('cccd', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: 1.3 }}>
             <label className="form-label">Số điện thoại (SĐT)</label>
-            <input className="form-control" placeholder="09xxxxxxxx" value={form.phone} onChange={e => setF('phone', e.target.value)} />
+            <input className="form-control" value={form.phone} onChange={e => setF('phone', e.target.value)} />
           </div>
         </div>
 
@@ -1079,30 +1074,30 @@ const ExpertsPage = () => {
           </div>
           <div className="form-group" style={{ flex: '0 0 75px' }}>
             <label className="form-label">Ngày</label>
-            <input className="form-control" type="number" min="1" max="31" placeholder="DD" value={form.birthDay} onChange={e => handleBirthPartChange('birthDay', e.target.value)} />
+            <input className="form-control" type="number" min="1" max="31" value={form.birthDay} onChange={e => handleBirthPartChange('birthDay', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: '0 0 75px' }}>
             <label className="form-label">Tháng</label>
-            <input className="form-control" type="number" min="1" max="12" placeholder="MM" value={form.birthMonth} onChange={e => handleBirthPartChange('birthMonth', e.target.value)} />
+            <input className="form-control" type="number" min="1" max="12" value={form.birthMonth} onChange={e => handleBirthPartChange('birthMonth', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: '0 0 90px' }}>
             <label className="form-label">Năm</label>
-            <input className="form-control" type="number" min="1940" max="2010" placeholder="YYYY" value={form.birthYear} onChange={e => handleBirthPartChange('birthYear', e.target.value)} />
+            <input className="form-control" type="number" min="1940" max="2010" value={form.birthYear} onChange={e => handleBirthPartChange('birthYear', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: 2 }}>
             <label className="form-label">Quê quán</label>
-            <input className="form-control" placeholder="Xã/Phường, Huyện/Quận, Tỉnh/TP" value={form.hometown} onChange={e => setF('hometown', e.target.value)} />
+            <input className="form-control" value={form.hometown} onChange={e => setF('hometown', e.target.value)} />
           </div>
         </div>
 
         <div className="form-row">
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Địa chỉ thường trú</label>
-            <input className="form-control" placeholder="Địa chỉ theo hộ khẩu thường trú" value={form.permanentAddress} onChange={e => setF('permanentAddress', e.target.value)} />
+            <input className="form-control" value={form.permanentAddress} onChange={e => setF('permanentAddress', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Nơi ở hiện tại</label>
-            <input className="form-control" placeholder="Địa chỉ nơi ở / liên hệ hiện nay" value={form.currentAddress} onChange={e => setF('currentAddress', e.target.value)} />
+            <input className="form-control" value={form.currentAddress} onChange={e => setF('currentAddress', e.target.value)} />
           </div>
         </div>
 
@@ -1129,7 +1124,7 @@ const ExpertsPage = () => {
           </div>
           <div className="form-group" style={{ flex: 1.5 }}>
             <label className="form-label">Nghề nghiệp</label>
-            <input className="form-control" placeholder="Giảng viên, Nghiên cứu viên..." value={form.occupation} onChange={e => setF('occupation', e.target.value)} />
+            <input className="form-control" value={form.occupation} onChange={e => setF('occupation', e.target.value)} />
           </div>
         </div>
 
@@ -1142,7 +1137,7 @@ const ExpertsPage = () => {
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Nơi công tác chính (Cơ quan / Doanh nghiệp)</label>
-            <input className="form-control" placeholder="Tên trường đại học, viện nghiên cứu, doanh nghiệp..." value={form.workplace} onChange={e => setF('workplace', e.target.value)} />
+            <input className="form-control" value={form.workplace} onChange={e => setF('workplace', e.target.value)} />
           </div>
         </div>
 
@@ -1153,11 +1148,11 @@ const ExpertsPage = () => {
         <div className="form-row">
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Số tài khoản (STK)</label>
-            <input className="form-control" placeholder="Nhập số tài khoản ngân hàng" value={form.bankAccount} onChange={e => setF('bankAccount', e.target.value)} />
+            <input className="form-control" value={form.bankAccount} onChange={e => setF('bankAccount', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Ngân hàng & Chi nhánh</label>
-            <input className="form-control" placeholder="Vietcombank - CN Ba Đình, BIDV..." value={form.bankName} onChange={e => setF('bankName', e.target.value)} />
+            <input className="form-control" value={form.bankName} onChange={e => setF('bankName', e.target.value)} />
           </div>
         </div>
 
@@ -1168,13 +1163,12 @@ const ExpertsPage = () => {
         <div className="form-row">
           <div className="form-group" style={{ flex: 1.2 }}>
             <label className="form-label">Số hợp đồng (Số HĐ) <span className="required">*</span></label>
-            <input className="form-control" placeholder="HĐ-TG-01/2026" value={form.contractNo} onChange={e => setF('contractNo', e.target.value)} required />
+            <input className="form-control" value={form.contractNo} onChange={e => setF('contractNo', e.target.value)} required />
           </div>
           <div className="form-group" style={{ flex: 0.9 }}>
             <label className="form-label">Năm HĐ</label>
             <input
               className="form-control"
-              placeholder="2026"
               value={form.year}
               onChange={e => setF('year', e.target.value)}
             />
@@ -1221,7 +1215,7 @@ const ExpertsPage = () => {
 
         <div className="form-group">
           <label className="form-label">Ghi chú thêm</label>
-          <textarea className="form-control" rows={2} placeholder="Nội dung ghi chú thêm (nếu có)..." value={form.notes} onChange={e => setF('notes', e.target.value)} />
+          <textarea className="form-control" rows={2} value={form.notes} onChange={e => setF('notes', e.target.value)} />
         </div>
       </Modal>
 

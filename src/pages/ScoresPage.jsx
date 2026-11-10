@@ -690,15 +690,11 @@ const ScoresPage = () => {
           <label className="form-label">Tên thư mục <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="Lớp K65-CNTT, Điểm thi lần 1, Khoa Kinh tế..."
             value={newFolderName}
             onChange={e => setNewFolderName(e.target.value)}
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); }}
           />
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-            💡 Bạn có thể đặt tên thư mục tùy ý theo lớp học, môn học, khoa hoặc đợt thi.
-          </p>
         </div>
       </Modal>
 
@@ -744,7 +740,6 @@ const ScoresPage = () => {
           <label className="form-label">Năm học mới <span className="required">*</span></label>
           <input
             className="form-control"
-            placeholder="2027-2028, 2028-2029"
             value={newYearInput}
             onChange={e => setNewYearInput(e.target.value)}
             autoFocus
@@ -773,7 +768,6 @@ const ScoresPage = () => {
             <label className="form-label">Tên môn học <span className="required">*</span></label>
             <input
               className="form-control"
-              placeholder="Toán cao cấp A1, Vật lý đại cương..."
               value={subjectName}
               onChange={e => setSubjectName(e.target.value)}
             />

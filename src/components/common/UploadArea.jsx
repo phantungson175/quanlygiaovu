@@ -60,6 +60,7 @@ const UploadArea = ({
     };
 
     onFileSelect([linkFileObj]);
+    toast.success('Đã gắn liên kết lưu trữ Google Drive thành công!');
     if (isGoogleDriveFolderUrl(trimmedUrl)) {
       toast('💡 Bạn đang gắn link Thư mục. Để xem trước nội dung trực tiếp, bạn nên copy link của từng tệp bên trong thư mục nhé!', { icon: 'ℹ️', duration: 5500 });
     } else {
@@ -176,9 +177,6 @@ const UploadArea = ({
                 onChange={(e) => handleFiles(e.target.files)}
               />
             </div>
-            <div style={{ fontSize: 11, color: '#166534', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span>⚡</span> Hệ thống tự động tối ưu & nén thông minh (WebP) đối với ảnh scan/chụp trước khi lưu.
-            </div>
           </div>
         )}
 
@@ -192,7 +190,6 @@ const UploadArea = ({
               <input
                 type="url"
                 className="form-control"
-                placeholder="https://drive.google.com/file/d/1A2B3C.../view?usp=sharing"
                 value={driveUrl}
                 onChange={(e) => setDriveUrl(e.target.value)}
                 style={{ fontSize: 12.5 }}
@@ -206,22 +203,18 @@ const UploadArea = ({
               <input
                 type="text"
                 className="form-control"
-                placeholder="VD: Bảng điểm scan K17 CNTT, Hợp đồng chuyên gia 2026..."
                 value={driveFileName}
                 onChange={(e) => setDriveFileName(e.target.value)}
                 style={{ fontSize: 12.5 }}
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-              <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.4 }}>
-                💡 <em>Tận dụng 15GB Google Drive của Khoa: chọn "Chia sẻ" $\to$ "Bất kỳ ai có liên kết" rồi dán vào đây để lưu trữ vĩnh viễn 0đ.</em>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 2 }}>
               <button
                 type="button"
                 className="btn btn-primary btn-xs"
                 onClick={handleConfirmDriveLink}
-                style={{ padding: '5px 12px', whiteSpace: 'nowrap' }}
+                style={{ padding: '5px 14px', whiteSpace: 'nowrap' }}
               >
                 Gắn liên kết
               </button>
