@@ -170,7 +170,7 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
                 {resolved?.size && (
                   <span>· {formatFileSize(resolved.size)}</span>
                 )}
-                <span>· {fileType === 'gdrive' ? 'Lưu trữ Google Drive Khoa (0đ)' : 'Chế độ xem trực tiếp an toàn'}</span>
+                <span>· {fileType === 'gdrive' ? 'Lưu trữ Đám mây Google Drive' : 'Chế độ xem trực tiếp an toàn'}</span>
               </div>
             </div>
           </div>
@@ -334,7 +334,7 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
                 Vì thư mục chứa nhiều tệp con, Google không hỗ trợ nhúng toàn bộ thư mục vào khung xem trực tiếp.
                 <br />
                 <span style={{ fontSize: 12.5, color: '#166534', fontWeight: 600, display: 'block', marginTop: 8 }}>
-                  💡 Mẹo: Để xem trước tài liệu (PDF/Ảnh/Word) trực tiếp trong khung này, bạn hãy vào thư mục trên Drive $\to$ bấm chuột phải vào chính tệp tài liệu đó $\to$ chọn Chia sẻ.
+                  💡 Mẹo: Để xem trước tài liệu (PDF/Ảnh/Word) trực tiếp trong khung này, bạn hãy vào thư mục trên Drive → bấm chuột phải vào chính tệp tài liệu đó → chọn Chia sẻ.
                 </span>
               </p>
               <button

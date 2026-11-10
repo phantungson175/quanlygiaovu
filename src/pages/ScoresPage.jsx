@@ -13,7 +13,6 @@ import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';
 import FilePill from '../components/common/FilePill';
 import UploadArea from '../components/common/UploadArea';
-import PrinterHotFolderModal from '../components/common/PrinterHotFolderModal';
 import { downloadFileSafely } from '../services/storageHelper';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
@@ -64,33 +63,6 @@ const ScoresPage = () => {
   const [createYearModalOpen, setCreateYearModalOpen] = useState(false);
   const [customYears, setCustomYears] = useState([]);
   const [newYearInput, setNewYearInput] = useState('');
-
-  // Modal Quét bảng điểm trực tiếp vào Thư mục
-  const [scanToFolderModalOpen, setScanToFolderModalOpen] = useState(false);
-
-  const handleSaveScannedScoreToFolder = async (file, metadata) => {
-    try {
-      const subName = metadata.title || 'Bảng điểm scan';
-      const yr = selectedYear || '2025-2026';
-      await uploadScore(
-        file,
-        subName,
-        currentFolderName || 'Bảng điểm scan',
-        user,
-        yr,
-        currentParentId || null,
-        currentFolderName || ''
-      );
-      toast.success('Đã quét và lưu bảng điểm vào thư mục!');
-      await load();
-      if (selectedYear) {
-        await loadFolders(selectedYear, currentParentId);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Lỗi khi lưu bảng điểm: ' + (err.message || 'Vui lòng thử lại!'));
-    }
-  };
 
   const load = async () => {
     setLoading(true);
@@ -369,23 +341,6 @@ const ScoresPage = () => {
             📅 + Thêm năm học
           </button>
         )}
-
-        <button
-          className="btn btn-outline"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            borderColor: '#2563eb',
-            color: '#1d4ed8',
-            background: '#eff6ff',
-            fontWeight: 600,
-          }}
-          onClick={() => setScanToFolderModalOpen(true)}
-          title={currentFolderName ? `Mở Hộp tệp máy in để nạp bảng điểm vào thư mục "${currentFolderName}"` : `Mở Hộp tệp máy in để nạp vào Năm học ${selectedYear || '2025-2026'}`}
-        >
-          <span>🖨️</span> Hộp tệp Máy in / Scan
-        </button>
 
         <button className="btn btn-primary" onClick={openModal}>
           + Upload File Điểm
@@ -805,21 +760,6 @@ const ScoresPage = () => {
           />
         </div>
       </Modal>
-
-      {/* Modal Hộp tệp Máy in / Máy scan tự động */}
-      <PrinterHotFolderModal
-        isOpen={scanToFolderModalOpen}
-        onClose={() => setScanToFolderModalOpen(false)}
-        onSave={handleSaveScannedScoreToFolder}
-        title={`Hộp tệp Máy in / Scan: ${currentFolderName || (selectedYear ? `Năm học ${selectedYear}` : 'Quản lý Điểm')}`}
-        folderInfo={{
-          module: 'scores',
-          moduleLabel: 'Quản lý Điểm',
-          year: selectedYear || '2025-2026',
-          folderId: currentParentId,
-          folderName: currentFolderName,
-        }}
-      />
     </div>
   );
 };

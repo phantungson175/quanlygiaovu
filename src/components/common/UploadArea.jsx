@@ -11,7 +11,7 @@ const UploadArea = ({
   accept = '.pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.webp',
   allowedTypes = ['pdf', 'xlsx', 'xls', 'docx', 'doc', 'jpg', 'jpeg', 'png', 'webp'],
   maxMB = 25,
-  hint = 'PDF, Excel, Word, Ảnh JPG/PNG (Tự động nén WebP)',
+  hint = 'PDF, Excel, Word, Ảnh JPG/PNG',
   selectedFiles = [],
 }) => {
   const inputRef = useRef(null);
@@ -122,7 +122,7 @@ const UploadArea = ({
             gap: 6,
           }}
         >
-          <span>☁️</span> Google Drive (Lưu trữ 0đ)
+          <span>☁️</span> Google Drive / Đám mây
         </button>
       </div>
 
@@ -243,7 +243,7 @@ const UploadArea = ({
                   }}
                 >
                   <span style={{ fontSize: 10, color: isDrive ? '#1d4ed8' : 'var(--primary)', fontWeight: 700 }}>
-                    {isDrive ? 'GOOGLE DRIVE:' : 'FILE CỤC BỘ:'}
+                    {isDrive ? 'GOOGLE DRIVE:' : 'TỆP ĐÍNH KÈM:'}
                   </span>
                   <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {f.name || f.fileName}

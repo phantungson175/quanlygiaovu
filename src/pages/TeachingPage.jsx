@@ -14,7 +14,6 @@ import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';
 import FilePill from '../components/common/FilePill';
 import UploadArea from '../components/common/UploadArea';
-import PrinterHotFolderModal from '../components/common/PrinterHotFolderModal';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
 
@@ -72,51 +71,9 @@ const TeachingPage = () => {
   const [customYears, setCustomYears] = useState([]);
   const [newYearInput, setNewYearInput] = useState('');
 
-  // Modal Quét minh chứng trực tiếp vào Thư mục
-  const [scanToFolderModalOpen, setScanToFolderModalOpen] = useState(false);
-
   const currentParentId = folderPath.length > 0 ? folderPath[folderPath.length - 1].id : null;
   const currentFolderName = folderPath.length > 0 ? folderPath[folderPath.length - 1].name : null;
   const currentModule = tab === 'norm' ? 'teaching_norm' : 'teaching_contract';
-
-  const handleSaveScannedTeachingDocToFolder = async (file, metadata) => {
-    try {
-      const yr = selectedYear || defYear;
-      if (tab === 'norm') {
-        const payload = {
-          ...EMPTY_NORM,
-          lecturerName: metadata.title || 'Minh chứng định mức scan',
-          academicYear: yr,
-          year: yr,
-          department: 'Đơn vị đào tạo',
-          notes: metadata.notes || 'Bản scan từ Máy in / Máy scan',
-          folderId: currentParentId || null,
-          folderName: currentFolderName || '',
-        };
-        await addTeachingNorm(payload, [file], user);
-      } else {
-        const payload = {
-          ...EMPTY_CONTRACT,
-          lecturerName: metadata.title || 'Hợp đồng giảng dạy scan',
-          academicYear: yr,
-          year: yr,
-          department: 'Đơn vị đào tạo',
-          notes: metadata.notes || 'Bản scan từ Máy in / Máy scan',
-          folderId: currentParentId || null,
-          folderName: currentFolderName || '',
-        };
-        await addTeachingContract(payload, [file], user);
-      }
-      toast.success('Đã quét và lưu minh chứng vào thư mục!');
-      await load();
-      if (selectedYear) {
-        await loadSubfolders(selectedYear, currentParentId);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Lỗi khi lưu minh chứng: ' + (err.message || 'Vui lòng thử lại!'));
-    }
-  };
 
   const load = async () => {
     setLoading(true);
@@ -439,23 +396,6 @@ const TeachingPage = () => {
           </button>
         )}
 
-
-        <button
-          className="btn btn-outline"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            borderColor: '#2563eb',
-            color: '#1d4ed8',
-            background: '#eff6ff',
-            fontWeight: 600,
-          }}
-          onClick={() => setScanToFolderModalOpen(true)}
-          title={currentFolderName ? `Mở Hộp tệp máy in để nạp tài liệu vào thư mục "${currentFolderName}"` : `Mở Hộp tệp máy in để nạp vào Năm học ${selectedYear || defYear}`}
-        >
-          <span>🖨️</span> Hộp tệp Máy in / Scan
-        </button>
 
         <button className="btn btn-primary" onClick={openModal}>
           + {tab === 'norm' ? 'Thêm dữ liệu Định mức' : 'Thêm Hợp đồng Giảng dạy'}
@@ -1024,21 +964,6 @@ const TeachingPage = () => {
           />
         </div>
       </Modal>
-
-      {/* Modal Hộp tệp Máy in / Máy scan tự động vào Thư mục */}
-      <PrinterHotFolderModal
-        isOpen={scanToFolderModalOpen}
-        onClose={() => setScanToFolderModalOpen(false)}
-        onSave={handleSaveScannedTeachingDocToFolder}
-        title={`Hộp tệp máy in scan vào: ${currentFolderName || (selectedYear ? `Năm học ${selectedYear}` : 'Khối lượng Giảng dạy')}`}
-        folderInfo={{
-          module: currentModule,
-          moduleLabel: tab === 'norm' ? 'Định mức Giảng dạy' : 'Hợp đồng Giảng dạy',
-          year: selectedYear || defYear,
-          folderId: currentParentId,
-          folderName: currentFolderName,
-        }}
-      />
 
     </div>
   );

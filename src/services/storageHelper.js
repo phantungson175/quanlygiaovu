@@ -343,7 +343,7 @@ export const resolveFileForPreview = async (fileUrl, fileName) => {
         };
       }
       return {
-        error: 'Tệp dung lượng lớn này hiện đang được lưu trên trình duyệt của máy tính upload và chưa được đồng bộ sang máy này.',
+        error: 'Tệp đính kèm này chưa được đồng bộ trên thiết bị hiện tại.',
       };
     }
 

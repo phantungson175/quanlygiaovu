@@ -65,7 +65,7 @@ const LoginPage = () => {
         'auth/weak-password': 'Mật khẩu phải có ít nhất 6 ký tự.',
         'auth/invalid-email': 'Định dạng email không hợp lệ.',
         'auth/invalid-credential': 'Email hoặc mật khẩu không chính xác. Nếu bạn đã từng đăng ký bằng Google, hãy bấm nút "Đăng nhập bằng tài khoản Google" ở phía trên.',
-        'auth/network-request-failed': 'Lỗi kết nối mạng hoặc Firebase bị chặn.',
+        'auth/network-request-failed': 'Lỗi kết nối máy chủ. Vui lòng kiểm tra lại đường truyền internet.',
         'auth/too-many-requests': 'Đã thử đăng nhập thất bại quá nhiều lần. Vui lòng thử lại sau ít phút hoặc bấm "Quên mật khẩu?".',
       };
       setError(msgs[err.code] || `Lỗi (${err.code || 'unknown'}): ${err.message}`);
@@ -85,7 +85,7 @@ const LoginPage = () => {
       if (err.code === 'auth/popup-closed-by-user') {
         // người dùng tự đóng popup
       } else if (err.code === 'auth/operation-not-allowed' || err.code === 'auth/configuration-not-found') {
-        setError('Tính năng đăng nhập Google chưa được Bật trong Firebase Console. Bạn vui lòng vào tab "Connection method" và bật nhà cung cấp Google.');
+        setError('Tính năng đăng nhập bằng tài khoản Google hiện đang bảo trì.');
       } else {
         setError(`Đăng nhập Google thất bại (${err.code}): ${err.message}`);
       }
@@ -154,7 +154,6 @@ const LoginPage = () => {
                 <input
                   className="form-control"
                   type="text"
-                  placeholder="Nguyễn Văn A"
                   value={form.displayName}
                   onChange={e => set('displayName', e.target.value)}
                   required
@@ -166,7 +165,6 @@ const LoginPage = () => {
                 <input
                   className="form-control"
                   type="tel"
-                  placeholder="0912 345 678"
                   value={form.phone}
                   onChange={e => set('phone', e.target.value)}
                 />
@@ -179,14 +177,13 @@ const LoginPage = () => {
             <input
               className="form-control"
               type="email"
-              placeholder="example@school.edu.vn"
               value={form.email}
               onChange={e => set('email', e.target.value)}
               required
             />
             {mode === 'register' && (
               <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3, display: 'block' }}>
-                💡 Vui lòng nhập email thật để nhận liên kết xác thực kích hoạt tài khoản.
+                Email dùng để nhận liên kết xác thực kích hoạt tài khoản.
               </span>
             )}
           </div>
@@ -208,7 +205,6 @@ const LoginPage = () => {
               <input
                 className="form-control"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
                 value={form.password}
                 onChange={e => set('password', e.target.value)}
                 required
@@ -246,7 +242,6 @@ const LoginPage = () => {
                 <input
                   className="form-control"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Nhập lại mật khẩu"
                   value={form.confirmPassword}
                   onChange={e => set('confirmPassword', e.target.value)}
                   required
@@ -300,7 +295,6 @@ const LoginPage = () => {
                   <input
                     className="form-control"
                     type="email"
-                    placeholder="example@gmail.com"
                     value={forgotEmail}
                     onChange={e => setForgotEmail(e.target.value)}
                     required

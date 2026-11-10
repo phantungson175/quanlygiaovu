@@ -15,7 +15,6 @@ import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';
 import FilePill from '../components/common/FilePill';
 import UploadArea from '../components/common/UploadArea';
-import PrinterHotFolderModal from '../components/common/PrinterHotFolderModal';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
 
@@ -68,45 +67,8 @@ const DocumentsPage = () => {
   const [customYears, setCustomYears] = useState([]);
   const [newYearInput, setNewYearInput] = useState('');
 
-  // Modal Quét tài liệu trực tiếp vào Thư mục
-  const [scanToFolderModalOpen, setScanToFolderModalOpen] = useState(false);
-
   const currentParentId = folderPath.length > 0 ? folderPath[folderPath.length - 1].id : null;
   const currentFolderName = folderPath.length > 0 ? folderPath[folderPath.length - 1].name : null;
-
-  const handleSaveScannedDocToFolder = async (file, metadata) => {
-    try {
-      const isInc = tab === 'incoming';
-      const yearToSave = selectedYear || (file.name.match(/\d{4}/) ? file.name.match(/\d{4}/)[0] : new Date().getFullYear().toString());
-      const payload = {
-        refNo: metadata.refNo || `VB-SCAN-${Date.now().toString().slice(-4)}`,
-        date: todayStr(),
-        year: String(yearToSave),
-        sender: isInc ? 'Tài liệu quét (Scan trực tiếp)' : '',
-        recipient: !isInc ? 'Tài liệu quét (Scan trực tiếp)' : '',
-        summary: metadata.title || 'Văn bản scan trực tiếp',
-        assignee: user?.displayName || user?.email || '',
-        deadline: '',
-        notes: metadata.notes || '',
-        folderId: currentParentId || null,
-        folderName: currentFolderName || '',
-      };
-
-      if (isInc) {
-        await addIncomingDoc(payload, file, user);
-      } else {
-        await addOutgoingDoc(payload, file, user);
-      }
-      toast.success('Đã lưu tài liệu scan vào thư mục thành công!');
-      await load();
-      if (selectedYear) {
-        await loadSubfolders(selectedYear, currentParentId);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Lỗi khi lưu tài liệu scan: ' + (err.message || 'Vui lòng thử lại!'));
-    }
-  };
 
   const load = async () => {
     setLoading(true);
@@ -430,23 +392,6 @@ const DocumentsPage = () => {
           </button>
         )}
 
-
-        <button
-          className="btn btn-outline"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            borderColor: '#2563eb',
-            color: '#1d4ed8',
-            background: '#eff6ff',
-            fontWeight: 600,
-          }}
-          onClick={() => setScanToFolderModalOpen(true)}
-          title={currentFolderName ? `Mở Hộp tệp máy in để nạp tài liệu vào thư mục "${currentFolderName}"` : `Mở Hộp tệp máy in để nạp vào Năm ${selectedYear || new Date().getFullYear()}`}
-        >
-          <span>🖨️</span> Hộp tệp Máy in / Scan
-        </button>
 
         <button className="btn btn-primary" onClick={openModal}>
           + Thêm {tab === 'incoming' ? 'Văn bản Đến' : 'Văn bản Đi'}
@@ -934,21 +879,6 @@ const DocumentsPage = () => {
           <textarea className="form-control" rows={2} value={form.notes} onChange={e => setF('notes', e.target.value)} />
         </div>
       </Modal>
-
-      {/* Modal Hộp tệp Máy in / Máy scan tự động */}
-      <PrinterHotFolderModal
-        isOpen={scanToFolderModalOpen}
-        onClose={() => setScanToFolderModalOpen(false)}
-        onSave={handleSaveScannedDocToFolder}
-        title={`Hộp tệp Máy in / Scan: ${currentFolderName || (selectedYear ? `Năm ${selectedYear}` : (tab === 'incoming' ? 'Văn bản Đến' : 'Văn bản Đi'))}`}
-        folderInfo={{
-          module: `docs_${tab}`,
-          moduleLabel: tab === 'incoming' ? 'Văn bản Đến' : 'Văn bản Đi',
-          year: selectedYear || new Date().getFullYear(),
-          folderId: currentParentId,
-          folderName: currentFolderName,
-        }}
-      />
 
     </div>
   );

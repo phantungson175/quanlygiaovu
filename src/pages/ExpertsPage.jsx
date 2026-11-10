@@ -16,7 +16,6 @@ import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';
 import FilePill from '../components/common/FilePill';
 import UploadArea from '../components/common/UploadArea';
-import PrinterHotFolderModal from '../components/common/PrinterHotFolderModal';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
 
@@ -111,36 +110,6 @@ const ExpertsPage = () => {
   const [createYearModalOpen, setCreateYearModalOpen] = useState(false);
   const [customYears, setCustomYears] = useState([]);
   const [newYearInput, setNewYearInput] = useState('');
-
-  // Modal Quét hồ sơ chuyên gia trực tiếp vào Thư mục
-  const [scanToFolderModalOpen, setScanToFolderModalOpen] = useState(false);
-
-  const handleSaveScannedExpertDocToFolder = async (file, metadata) => {
-    try {
-      const yr = selectedYear || new Date().getFullYear().toString();
-      const expName = metadata.title || 'Hồ sơ chuyên gia scan';
-      const payload = {
-        ...EMPTY_FORM,
-        name: expName,
-        contractNo: metadata.refNo || `HD-SCAN-${Date.now().toString().slice(-4)}`,
-        year: yr,
-        folderId: currentParentId || null,
-        folderName: currentFolderName || '',
-        startDate: todayStr(),
-        endDate: `${parseInt(yr) + 1}-12-31`,
-        notes: metadata.notes || 'Hồ sơ scan trực tiếp bằng Camera',
-      };
-      await addExpert(payload, file, user);
-      toast.success('Đã quét và lưu hồ sơ chuyên gia vào thư mục!');
-      await load();
-      if (selectedYear) {
-        await loadSubfolders(selectedYear, currentParentId);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Lỗi khi lưu hồ sơ chuyên gia: ' + (err.message || 'Vui lòng thử lại!'));
-    }
-  };
 
   const currentParentId = folderPath.length > 0 ? folderPath[folderPath.length - 1].id : null;
   const currentFolderName = folderPath.length > 0 ? folderPath[folderPath.length - 1].name : null;
@@ -577,23 +546,6 @@ const ExpertsPage = () => {
             📅 + Thêm năm
           </button>
         )}
-
-        <button
-          className="btn btn-outline"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            borderColor: '#2563eb',
-            color: '#1d4ed8',
-            background: '#eff6ff',
-            fontWeight: 600,
-          }}
-          onClick={() => setScanToFolderModalOpen(true)}
-          title={currentFolderName ? `Mở Hộp tệp máy in để nạp hồ sơ vào thư mục "${currentFolderName}"` : `Mở Hộp tệp máy in để nạp vào Năm ${selectedYear || new Date().getFullYear()}`}
-        >
-          <span>🖨️</span> Hộp tệp Máy in / Scan
-        </button>
 
         <button className="btn btn-primary" onClick={openAdd}>+ Thêm mới Chuyên gia</button>
 
@@ -1294,21 +1246,6 @@ const ExpertsPage = () => {
           </div>
         </Modal>
       )}
-
-      {/* Modal Hộp tệp Máy in / Máy scan tự động */}
-      <PrinterHotFolderModal
-        isOpen={scanToFolderModalOpen}
-        onClose={() => setScanToFolderModalOpen(false)}
-        onSave={handleSaveScannedExpertDocToFolder}
-        title={`Hộp tệp Máy in / Scan: ${currentFolderName || (selectedYear ? `Năm ${selectedYear}` : 'Thỉnh giảng Chuyên gia')}`}
-        folderInfo={{
-          module: 'experts',
-          moduleLabel: 'Thỉnh giảng Chuyên gia',
-          year: selectedYear || new Date().getFullYear(),
-          folderId: currentParentId,
-          folderName: currentFolderName,
-        }}
-      />
 
     </div>
   );

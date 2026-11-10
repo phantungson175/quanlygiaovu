@@ -69,8 +69,10 @@ const Topbar = ({
             className="notif-btn"
             onClick={() => setNotifOpen(o => !o)}
             title="Thông báo hệ thống"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
           >
-            Thông báo
+            <span>🔔</span>
+            <span>Thông báo</span>
             {unread.length > 0 && (
               <span className="notif-dot">{unread.length > 9 ? '9+' : unread.length}</span>
             )}
