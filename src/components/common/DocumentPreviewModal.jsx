@@ -58,9 +58,11 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
   const fileType = getFileType(fileName, url);
   const ext = fileType === 'gdrive' ? 'G-DRIVE' : (fileName?.split('.').pop()?.toUpperCase() || 'FILE');
 
-  const handleDownload = () => {
-    downloadFileSafely(url, fileName);
-    toast.success(`Đang tải tệp "${fileName}"...`);
+  const handleDownload = async () => {
+    const ok = await downloadFileSafely(url, fileName);
+    if (ok) {
+      toast.success(`Đang tải tệp "${fileName}"...`);
+    }
   };
 
   const handleOpenNewTab = () => {

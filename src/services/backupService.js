@@ -1,7 +1,7 @@
 // src/services/backupService.js
 // Dịch vụ Sao lưu (Export JSON) & Phục hồi (Restore) toàn bộ cơ sở dữ liệu hệ thống
 import {
-  collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp
+  collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp, Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { logAction } from './auditService';
@@ -14,10 +14,28 @@ export const BACKUP_COLLECTIONS = [
   { key: 'teaching_norm', label: 'Định mức Giảng dạy' },
   { key: 'teaching_contract', label: 'Hợp đồng Giảng dạy' },
   { key: 'scores', label: 'File Điểm Đại học' },
-  { key: 'folders', label: 'Cây Thư mục & Năm' },
+  { key: 'custom_folders', label: 'Cây Thư mục & Năm' },
   { key: 'users', label: 'Tài khoản & Phân quyền' },
   { key: 'audit_logs', label: 'Nhật ký Hoạt động' },
 ];
+
+// Chuyển đổi các object { seconds, nanoseconds } từ JSON về lại Firestore Timestamp
+const restoreTimestamps = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(restoreTimestamps);
+  if (
+    typeof obj.seconds === 'number' &&
+    typeof obj.nanoseconds === 'number' &&
+    Object.keys(obj).length <= 2
+  ) {
+    return new Timestamp(obj.seconds, obj.nanoseconds);
+  }
+  const result = {};
+  for (const [k, v] of Object.entries(obj)) {
+    result[k] = restoreTimestamps(v);
+  }
+  return result;
+};
 
 /**
  * Lấy số lượng bản ghi của tất cả collection
@@ -110,28 +128,30 @@ export const restoreFromBackup = async (backupData, mode = 'merge', onProgress =
   const totalCollections = collectionsToRestore.length;
   let currentStep = 0;
 
-  for (const colKey of collectionsToRestore) {
+  for (const rawKey of collectionsToRestore) {
     currentStep++;
+    const targetCol = rawKey === 'folders' ? 'custom_folders' : rawKey;
     const percent = Math.round((currentStep / totalCollections) * 100);
-    const docs = backupData.collections[colKey] || [];
+    const docs = backupData.collections[rawKey] || [];
 
-    onProgress(percent, `Đang xử lý phân hệ: ${colKey} (${docs.length} bản ghi)...`);
+    onProgress(percent, `Đang xử lý phân hệ: ${targetCol} (${docs.length} bản ghi)...`);
 
     // Nếu chọn chế độ 'clean': xóa dữ liệu hiện tại trước
     if (mode === 'clean') {
       try {
-        const snap = await getDocs(collection(db, colKey));
-        await Promise.all(snap.docs.map(d => deleteDoc(doc(db, colKey, d.id))));
+        const snap = await getDocs(collection(db, targetCol));
+        await Promise.all(snap.docs.map(d => deleteDoc(doc(db, targetCol, d.id))));
       } catch (err) {
-        console.warn(`Không thể xóa dữ liệu cũ collection ${colKey}:`, err);
+        console.warn(`Không thể xóa dữ liệu cũ collection ${targetCol}:`, err);
       }
     }
 
     // Nạp lại từng document
     for (const item of docs) {
       const docId = item._id;
-      const dataToSave = { ...item };
-      delete dataToSave._id;
+      const rawData = { ...item };
+      delete rawData._id;
+      const dataToSave = restoreTimestamps(rawData);
 
       // Xử lý các trường thời gian
       if (!dataToSave.updatedAt) {
@@ -139,7 +159,7 @@ export const restoreFromBackup = async (backupData, mode = 'merge', onProgress =
       }
 
       if (docId) {
-        await setDoc(doc(db, colKey, docId), dataToSave, { merge: true });
+        await setDoc(doc(db, targetCol, docId), dataToSave, { merge: true });
       }
     }
   }

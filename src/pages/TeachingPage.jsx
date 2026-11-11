@@ -956,10 +956,11 @@ const TeachingPage = () => {
           <label className="form-label">Upload file minh chứng (TKB, bảng chấm công...)</label>
           <UploadArea
             onFileSelect={f => setFiles(prev => [...prev, ...f])}
+            onRemoveFile={idx => setFiles(prev => prev.filter((_, i) => i !== idx))}
             multiple={true}
-            allowedTypes={['pdf', 'xlsx', 'xls', 'docx', 'doc']}
-            accept=".pdf,.xlsx,.xls,.docx,.doc"
-            hint="Excel, Word, PDF – Có thể chọn nhiều file"
+            allowedTypes={['pdf', 'xlsx', 'xls', 'docx', 'doc', 'jpg', 'jpeg', 'png']}
+            accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png"
+            hint="PDF, Excel, Word, Ảnh scan – Có thể chọn nhiều file"
             selectedFiles={files}
           />
         </div>

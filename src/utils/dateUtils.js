@@ -23,7 +23,8 @@ export const formatDate = (dateStr) => {
 export const formatTimestamp = (ts) => {
   if (!ts) return '—';
   try {
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    const d = ts.toDate ? ts.toDate() : (typeof ts.seconds === 'number' ? new Date(ts.seconds * 1000) : new Date(ts));
+    if (!isValid(d)) return '—';
     return format(d, 'dd/MM/yyyy HH:mm', { locale: vi });
   } catch {
     return '—';
@@ -32,13 +33,15 @@ export const formatTimestamp = (ts) => {
 
 /**
  * Tính số tháng còn lại từ ngày đưa vào sử dụng + khấu hao
- * @returns {number} số tháng còn lại (âm = đã hết hạn)
+ * @returns {number|null} số tháng còn lại (âm = đã hết hạn)
  */
 export const getDepreciationMonthsLeft = (startDateStr, depreciationMonths) => {
   if (!startDateStr || !depreciationMonths) return null;
   const start = parseISO(startDateStr);
+  const months = parseInt(depreciationMonths, 10);
+  if (!isValid(start) || isNaN(months)) return null;
   const expiry = new Date(start);
-  expiry.setMonth(expiry.getMonth() + parseInt(depreciationMonths));
+  expiry.setMonth(expiry.getMonth() + months);
   const now = new Date();
   return differenceInMonths(expiry, now);
 };
@@ -49,6 +52,7 @@ export const getDepreciationMonthsLeft = (startDateStr, depreciationMonths) => {
 export const getContractMonthsLeft = (endDateStr) => {
   if (!endDateStr) return null;
   const end = parseISO(endDateStr);
+  if (!isValid(end)) return null;
   const now = new Date();
   return differenceInMonths(end, now);
 };

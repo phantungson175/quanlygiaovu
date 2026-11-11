@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 // Context quản lý trạng thái đăng nhập toàn ứng dụng
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { getUserProfile } from '../services/authService';
 
@@ -15,20 +15,36 @@ export const AuthProvider = ({ children }) => {
   const fetchProfile = async (u) => {
     if (!u) {
       setProfile(null);
-      return;
+      return null;
     }
     try {
       const p = await getUserProfile(u.uid);
+      if (p?.status === 'locked') {
+        await signOut(auth);
+        setUser(null);
+        setProfile(null);
+        return { locked: true };
+      }
       setProfile(p);
+      return p;
     } catch {
       setProfile(null);
+      return null;
     }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      await fetchProfile(firebaseUser);
+      if (!firebaseUser) {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+      const p = await fetchProfile(firebaseUser);
+      if (!p?.locked) {
+        setUser(firebaseUser);
+      }
       setLoading(false);
     });
     return unsubscribe;

@@ -753,9 +753,9 @@ const ScoresPage = () => {
           <label className="form-label">Chọn file điểm <span className="required">*</span></label>
           <UploadArea
             onFileSelect={files => setSelectedFile(files[0])}
-            allowedTypes={['pdf', 'xlsx', 'xls', 'docx', 'doc']}
-            accept=".pdf,.xlsx,.xls,.docx,.doc"
-            hint="Excel, Word, PDF – Tối đa 20MB"
+            allowedTypes={['pdf', 'xlsx', 'xls', 'docx', 'doc', 'jpg', 'jpeg', 'png']}
+            accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png"
+            hint="Excel, Word, PDF, Ảnh scan – Tối đa 20MB"
             selectedFiles={selectedFile ? [selectedFile] : []}
           />
         </div>

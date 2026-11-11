@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 
 const UploadArea = ({
   onFileSelect,
+  onRemoveFile,
   multiple = false,
   accept = '.pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.webp',
   allowedTypes = ['pdf', 'xlsx', 'xls', 'docx', 'doc', 'jpg', 'jpeg', 'png', 'webp'],
@@ -46,7 +47,7 @@ const UploadArea = ({
 
     const trimmedUrl = driveUrl.trim();
     const isDrive = isGoogleDriveUrl(trimmedUrl);
-    const fallbackName = isDrive ? 'Tài liệu Google Drive (Khoa CNTT)' : 'Liên kết tài liệu đính kèm';
+    const fallbackName = isDrive ? 'Tài liệu Google Drive' : 'Liên kết tài liệu đính kèm';
     const finalName = driveFileName.trim() || fallbackName;
 
     const linkFileObj = {
@@ -60,16 +61,18 @@ const UploadArea = ({
     };
 
     onFileSelect([linkFileObj]);
-    toast.success('Đã gắn liên kết lưu trữ Google Drive thành công!');
+    toast.success('Đã gắn liên kết tài liệu thành công!');
     if (isGoogleDriveFolderUrl(trimmedUrl)) {
-      toast('💡 Bạn đang gắn link Thư mục. Để xem trước nội dung trực tiếp, bạn nên copy link của từng tệp bên trong thư mục nhé!', { icon: 'ℹ️', duration: 5500 });
-    } else {
-      toast.success('Đã gắn liên kết tài liệu Google Drive thành công!');
+      toast('💡 Bạn đang gắn link Thư mục. Để xem trước nội dung trực tiếp, hãy copy link của từng tệp bên trong thư mục nhé!', { icon: 'ℹ️', duration: 5000 });
     }
+    setDriveUrl('');
+    setDriveFileName('');
   };
 
   const handleRemoveFile = (indexToRemove) => {
-    if (multiple) {
+    if (onRemoveFile) {
+      onRemoveFile(indexToRemove);
+    } else if (multiple) {
       onFileSelect(selectedFiles.filter((_, idx) => idx !== indexToRemove));
     } else {
       onFileSelect([]);
@@ -174,7 +177,10 @@ const UploadArea = ({
                 accept={accept}
                 multiple={multiple}
                 style={{ display: 'none' }}
-                onChange={(e) => handleFiles(e.target.files)}
+                onChange={(e) => {
+                  if (e.target.files?.length) handleFiles(e.target.files);
+                  e.target.value = '';
+                }}
               />
             </div>
           </div>

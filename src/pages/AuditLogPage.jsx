@@ -7,9 +7,18 @@ import SearchBar from '../components/common/SearchBar';
 
 const ACTION_LABELS = {
   add: { label: 'Thêm mới', cls: 'badge-success', dot: 'add' },
+  create: { label: 'Tạo mới', cls: 'badge-success', dot: 'add' },
   edit: { label: 'Chỉnh sửa', cls: 'badge-info', dot: 'edit' },
+  update: { label: 'Cập nhật', cls: 'badge-info', dot: 'edit' },
+  update_role: { label: 'Phân quyền', cls: 'badge-warning', dot: 'edit' },
+  update_user_info: { label: 'Sửa cán bộ', cls: 'badge-info', dot: 'edit' },
+  update_self_profile: { label: 'Sửa hồ sơ', cls: 'badge-info', dot: 'edit' },
+  lock_account: { label: 'Khóa TK', cls: 'badge-danger', dot: 'delete' },
+  unlock_account: { label: 'Mở khóa TK', cls: 'badge-success', dot: 'add' },
   delete: { label: 'Xóa', cls: 'badge-danger', dot: 'delete' },
-  upload: { label: 'Upload', cls: 'badge-warning', dot: 'upload' },
+  delete_account: { label: 'Xóa TK', cls: 'badge-danger', dot: 'delete' },
+  upload: { label: 'Tải lên', cls: 'badge-warning', dot: 'upload' },
+  backup: { label: 'Sao lưu', cls: 'badge-primary', dot: 'upload' },
   login: { label: 'Đăng nhập', cls: 'badge-primary', dot: 'add' },
   logout: { label: 'Đăng xuất', cls: 'badge-default', dot: 'edit' },
 };

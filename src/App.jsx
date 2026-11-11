@@ -101,7 +101,7 @@ const App = () => {
             icon: '📥',
             badgeText: 'Chưa xử lý',
             title: `Văn bản đến cần xử lý: ${d.refNo}`,
-            desc: `Trích yếu: ${d.title || 'Không có trích yếu'} · Ngày đến: ${formatDate(d.date)}`,
+            desc: `Trích yếu: ${d.summary || d.title || 'Không có trích yếu'} · Ngày đến: ${formatDate(d.date)}`,
             page: 'documents',
             time: d.date ? formatDate(d.date) : 'Hôm nay',
             unread: true,

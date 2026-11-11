@@ -867,9 +867,9 @@ const DocumentsPage = () => {
           <label className="form-label">File văn bản đính kèm</label>
           <UploadArea
             onFileSelect={files => setDocFile(files[0])}
-            allowedTypes={['pdf', 'docx', 'doc']}
-            accept=".pdf,.docx,.doc"
-            hint="PDF, Word – Tối đa 20MB"
+            allowedTypes={['pdf', 'docx', 'doc', 'jpg', 'jpeg', 'png']}
+            accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
+            hint="PDF, Word, Ảnh scan – Tối đa 20MB"
             selectedFiles={docFile ? [docFile] : []}
           />
         </div>

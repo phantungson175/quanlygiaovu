@@ -27,7 +27,8 @@ export const extractGoogleDriveFileId = (url) => {
   const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
                 url.match(/id=([a-zA-Z0-9_-]+)/) ||
                 url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/) ||
-                url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+                url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/) ||
+                url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : null;
 };
 
@@ -37,6 +38,15 @@ export const extractGoogleDriveFileId = (url) => {
 export const getGoogleDrivePreviewUrl = (url) => {
   const fileId = extractGoogleDriveFileId(url);
   if (fileId) {
+    if (url.includes('docs.google.com/document/d/')) {
+      return `https://docs.google.com/document/d/${fileId}/preview`;
+    }
+    if (url.includes('docs.google.com/spreadsheets/d/')) {
+      return `https://docs.google.com/spreadsheets/d/${fileId}/preview`;
+    }
+    if (url.includes('docs.google.com/presentation/d/')) {
+      return `https://docs.google.com/presentation/d/${fileId}/preview`;
+    }
     return `https://drive.google.com/file/d/${fileId}/preview`;
   }
   return url;
@@ -164,7 +174,8 @@ export const getFileFromIndexedDB = async (fileId) => {
  * @param {File|Object} file - File người dùng chọn hoặc Object liên kết Drive
  * @returns {Promise<{fileUrl: string|null, fileName: string|null}>}
  */
-export const uploadFileSafely = async (pathPrefix, file) => {
+export const uploadFileSafely = async (pathPrefix, file, options = {}) => {
+  const { maxDataUrlChars = 800 * 1024 } = options;
   if (!file) return { fileUrl: null, fileName: null };
 
   // Trường hợp 1: Người dùng dán link Google Drive hoặc link ngoài
@@ -206,14 +217,14 @@ export const uploadFileSafely = async (pathPrefix, file) => {
   // Luôn lưu bản sao gốc vào IndexedDB để tải về mượt mà
   await saveFileToIndexedDB(fileId, processedFile);
 
-  // Nếu file < 750KB: Lưu trực tiếp Data URL vào Firestore
-  if (processedFile.size < 750 * 1024) {
+  // Chỉ lưu Data URL vào Firestore nếu nằm trong ngưỡng an toàn (< 800KB chuỗi Base64)
+  if (typeof dataUrl === 'string' && dataUrl.length <= maxDataUrlChars) {
     return {
       fileUrl: dataUrl,
       fileName: processedFile.name,
     };
   } else {
-    // Nếu file lớn hơn 750KB: Lưu đường dẫn idb để tải từ IndexedDB nội bộ không làm lỗi Firestore
+    // Nếu vượt ngưỡng an toàn Firestore: Lưu đường dẫn idb để không làm lỗi ghi Firestore
     return {
       fileUrl: `idb://${fileId}`,
       fileName: processedFile.name,
@@ -223,14 +234,15 @@ export const uploadFileSafely = async (pathPrefix, file) => {
 
 /**
  * Tải file an toàn về máy tính cho người dùng
+ * @returns {Promise<boolean>}
  */
 export const downloadFileSafely = async (fileUrl, fileName) => {
-  if (!fileUrl) return;
+  if (!fileUrl) return false;
 
   // Nếu là liên kết Google Drive -> Mở trang tải về của Drive
   if (isGoogleDriveUrl(fileUrl)) {
     window.open(getGoogleDriveDownloadUrl(fileUrl), '_blank');
-    return;
+    return true;
   }
 
   // Nếu là tệp IndexedDB
@@ -246,8 +258,10 @@ export const downloadFileSafely = async (fileUrl, fileName) => {
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-      return;
+      return true;
     }
+    toast.error('Tệp đính kèm này chưa được đồng bộ trên thiết bị hiện tại.');
+    return false;
   }
 
   // Với link web hoặc Data URL Base64
@@ -257,6 +271,7 @@ export const downloadFileSafely = async (fileUrl, fileName) => {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  return true;
 };
 
 /**

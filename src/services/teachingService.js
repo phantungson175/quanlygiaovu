@@ -10,6 +10,24 @@ import { logAction } from './auditService';
 const COL_NORM = 'teaching_norm';
 const COL_CONTRACT = 'teaching_contract';
 
+// Tải nhiều tệp đính kèm với tổng ngưỡng an toàn cho 1 tài liệu Firestore
+const uploadMultipleAttachmentsSafely = async (pathPrefix, files = []) => {
+  const attachments = [];
+  let remainingBudgetChars = 820 * 1024;
+  for (const file of files) {
+    const { fileUrl, fileName } = await uploadFileSafely(pathPrefix, file, {
+      maxDataUrlChars: Math.max(0, remainingBudgetChars),
+    });
+    if (fileUrl) {
+      if (fileUrl.startsWith('data:')) {
+        remainingBudgetChars -= fileUrl.length;
+      }
+      attachments.push({ name: fileName, url: fileUrl });
+    }
+  }
+  return attachments;
+};
+
 // ---- ĐỊNH MỨC ----
 export const getTeachingNorms = async () => {
   const q = query(collection(db, COL_NORM), orderBy('createdAt', 'desc'));
@@ -18,11 +36,7 @@ export const getTeachingNorms = async () => {
 };
 
 export const addTeachingNorm = async (data, files, user) => {
-  const attachments = [];
-  for (const file of files) {
-    const { fileUrl, fileName } = await uploadFileSafely('teaching/norm', file);
-    if (fileUrl) attachments.push({ name: fileName, url: fileUrl });
-  }
+  const attachments = await uploadMultipleAttachmentsSafely('teaching/norm', files);
 
   const docRef = await addDoc(collection(db, COL_NORM), {
     ...data, attachments, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
@@ -49,11 +63,7 @@ export const getTeachingContracts = async () => {
 };
 
 export const addTeachingContract = async (data, files, user) => {
-  const attachments = [];
-  for (const file of files) {
-    const { fileUrl, fileName } = await uploadFileSafely('teaching/contract', file);
-    if (fileUrl) attachments.push({ name: fileName, url: fileUrl });
-  }
+  const attachments = await uploadMultipleAttachmentsSafely('teaching/contract', files);
 
   const docRef = await addDoc(collection(db, COL_CONTRACT), {
     ...data, attachments, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),

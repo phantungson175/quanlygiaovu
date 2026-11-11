@@ -14,26 +14,24 @@ import {
 import { auth, db, googleProvider } from './firebase';
 import { generateNextStaffId } from './userService';
 
+const assertUserNotLocked = async (uid) => {
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (snap.exists() && snap.data().status === 'locked') {
+      await signOut(auth);
+      throw new Error('Tài khoản của bạn đã bị khóa bởi Quản trị viên. Vui lòng liên hệ phòng Giáo vụ!');
+    }
+  } catch (err) {
+    if (err.message && err.message.includes('bị khóa')) throw err;
+  }
+};
+
 /**
  * Đăng nhập bằng Email & Password
  */
 export const loginWithEmail = async (email, password) => {
   const result = await signInWithEmailAndPassword(auth, email, password);
-
-  // Kiểm tra trạng thái tài khoản có bị khóa không
-  try {
-    const snap = await getDoc(doc(db, 'users', result.user.uid));
-    if (snap.exists()) {
-      const data = snap.data();
-      if (data.status === 'locked') {
-        await signOut(auth);
-        throw new Error('Tài khoản của bạn đã bị khóa bởi Quản trị viên. Vui lòng liên hệ phòng Giáo vụ!');
-      }
-    }
-  } catch (err) {
-    if (err.message && err.message.includes('bị khóa')) throw err;
-  }
-
+  await assertUserNotLocked(result.user.uid);
   return result.user;
 };
 
@@ -177,6 +175,7 @@ export const loginWithGoogle = async () => {
     prompt: 'select_account',
   });
   const result = await signInWithPopup(auth, googleProvider);
+  await assertUserNotLocked(result.user.uid);
   return result.user;
 };
 
