@@ -3,14 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { updateMyProfile } from '../../services/userService';
+import { getAccountAuthInfo } from '../../services/authService';
 import { formatTimestamp } from '../../utils/dateUtils';
 import toast from 'react-hot-toast';
 
 import Modal from './Modal';
 import UserAvatar from './UserAvatar';
+import PasswordSetupBox from './PasswordSetupBox';
+import GmailSyncModal from './GmailSyncModal';
 
 const ProfileModal = ({ isOpen, onClose }) => {
-  const { user, profile, isAdmin, refreshUser } = useAuth();
+  const { user, profile, isAdmin, canSyncGmail, refreshUser } = useAuth();
 
   const [form, setForm] = useState({
     displayName: '',
@@ -19,6 +22,8 @@ const ProfileModal = ({ isOpen, onClose }) => {
     department: '',
   });
   const [saving, setSaving] = useState(false);
+  const [authInfo, setAuthInfo] = useState({ hasPassword: false, hasGoogle: false });
+  const [gmailModalOpen, setGmailModalOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -28,6 +33,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
         phone: profile?.phone || '',
         department: profile?.department || 'Phòng Quản lý Đào tạo',
       });
+      setAuthInfo(getAccountAuthInfo());
     }
   }, [isOpen, user, profile]);
 
@@ -55,12 +61,13 @@ const ProfileModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <Modal
-      open={isOpen}
-      onClose={onClose}
-      title="Thông tin Cá nhân & Tài khoản"
-      size="modal-md"
-    >
+    <>
+      <Modal
+        open={isOpen}
+        onClose={onClose}
+        title="Thông tin Cá nhân & Tài khoản"
+        size="modal-md"
+      >
       <form onSubmit={handleSubmit}>
         <div style={{ padding: '4px 0' }}>
           {/* Header tóm tắt hồ sơ */}
@@ -176,7 +183,58 @@ const ProfileModal = ({ isOpen, onClose }) => {
           </div>
         </div>
       </form>
-    </Modal>
+
+      {/* Khu vực Đặt/Đổi mật khẩu & Đồng bộ Gmail */}
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <PasswordSetupBox
+          hasPassword={authInfo.hasPassword}
+          hasGoogle={authInfo.hasGoogle}
+          onSuccess={() => setAuthInfo(getAccountAuthInfo())}
+        />
+
+        <div style={{
+          background: '#f8fafc',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ fontSize: 13 }}>
+            <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: 2 }}>
+              📧 Đồng bộ Văn bản Đến từ Gmail
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Trạng thái:{' '}
+              {canSyncGmail ? (
+                <span style={{ color: '#15803d', fontWeight: 600 }}>Đã được cấp quyền</span>
+              ) : (
+                <span style={{ color: '#b91c1c', fontWeight: 600 }}>Chưa được Admin cấp quyền</span>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => setGmailModalOpen(true)}
+            style={{ fontWeight: 600 }}
+          >
+            {canSyncGmail ? '⚙️ Thiết lập đồng bộ Gmail' : 'ℹ️ Xem chi tiết'}
+          </button>
+        </div>
+      </div>
+
+      </Modal>
+
+      <GmailSyncModal
+        isOpen={gmailModalOpen}
+        onClose={() => setGmailModalOpen(false)}
+      />
+    </>
   );
 };
 

@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 // Context quản lý trạng thái đăng nhập toàn ứng dụng
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { getUserProfile } from '../services/authService';
@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (u) => {
+  const fetchProfile = useCallback(async (u) => {
     if (!u) {
       setProfile(null);
       return null;
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
       setProfile(null);
       return null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -48,24 +48,23 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     });
     return unsubscribe;
-  }, []);
+  }, [fetchProfile]);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     if (auth.currentUser) {
       await auth.currentUser.reload();
-      const updatedUser = { ...auth.currentUser };
-      // Copy relevant fields or trigger re-render
       setUser(auth.currentUser);
       await fetchProfile(auth.currentUser);
       return auth.currentUser;
     }
     return null;
-  };
+  }, [fetchProfile]);
 
   const isAdmin = Boolean(profile?.role === 'Quản trị viên' || profile?.role === 'admin');
+  const canSyncGmail = Boolean(isAdmin || profile?.canSyncGmail === true);
 
   return (
-    <AuthContext.Provider value={{ user, profile, isAdmin, loading, refreshUser }}>
+    <AuthContext.Provider value={{ user, profile, isAdmin, canSyncGmail, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

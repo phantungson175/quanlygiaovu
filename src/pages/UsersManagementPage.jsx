@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  getAllUsers, updateUserRole, toggleUserStatus, deleteUserDoc, updateUserProfileData
+  getAllUsers, updateUserRole, toggleUserStatus, toggleUserGmailSync, deleteUserDoc, updateUserProfileData
 } from '../services/userService';
 import { formatTimestamp } from '../utils/dateUtils';
 import SearchBar from '../components/common/SearchBar';
@@ -31,6 +31,7 @@ const UsersManagementPage = () => {
     department: '',
     role: 'Cán bộ',
     status: 'active',
+    canSyncGmail: false,
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -138,6 +139,38 @@ const UsersManagementPage = () => {
     }
   };
 
+  // Cấp / Thu hồi quyền đồng bộ Gmail
+  const handleToggleGmailSync = async (targetUser) => {
+    const targetIsAdmin = targetUser.role === 'Quản trị viên' || targetUser.role === 'admin';
+    if (targetIsAdmin) {
+      toast('Quản trị viên mặc định luôn có quyền đồng bộ Gmail!');
+      return;
+    }
+
+    const enabled = targetUser.canSyncGmail === true;
+    const ok = await confirm({
+      title: enabled ? 'Thu hồi quyền đồng bộ Gmail' : 'Cấp quyền đồng bộ Gmail',
+      message: enabled
+        ? `Thu hồi quyền gắn nhãn đồng bộ Gmail của "${targetUser.displayName || targetUser.email}"? Tài khoản này sẽ không thể đẩy văn bản mới từ Gmail lên web nữa.`
+        : `Cấp quyền cho "${targetUser.displayName || targetUser.email}" tự cấu hình gắn nhãn Gmail đẩy văn bản đến lên trang web?`,
+      confirmText: enabled ? 'Thu hồi quyền' : 'Cấp quyền',
+      cancelText: 'Huỷ bỏ',
+      type: enabled ? 'warning' : 'info',
+    });
+    if (!ok) return;
+
+    try {
+      const next = await toggleUserGmailSync(targetUser.id || targetUser.uid, enabled, user);
+      toast.success(next ? 'Đã cấp quyền đồng bộ Gmail!' : 'Đã thu hồi quyền đồng bộ Gmail!');
+      await load();
+      if (targetUser.uid === user.uid && refreshUser) {
+        await refreshUser();
+      }
+    } catch {
+      toast.error('Lỗi khi thay đổi quyền đồng bộ Gmail!');
+    }
+  };
+
   // Xóa tài khoản khỏi danh sách
   const handleDeleteUser = async (targetUser) => {
     if (targetUser.uid === user.uid) {
@@ -177,6 +210,7 @@ const UsersManagementPage = () => {
       department: targetUser.department || 'Phòng Quản lý Đào tạo',
       role: (targetUser.role === 'Quản trị viên' || targetUser.role === 'admin') ? 'Quản trị viên' : 'Cán bộ',
       status: targetUser.status || 'active',
+      canSyncGmail: Boolean(targetUser.canSyncGmail),
     });
     setEditModalOpen(true);
   };
@@ -189,7 +223,11 @@ const UsersManagementPage = () => {
     }
     setSavingEdit(true);
     try {
-      await updateUserProfileData(editingUser.id || editingUser.uid, editForm, user);
+      const payloadToSave = {
+        ...editForm,
+        canSyncGmail: editForm.role === 'Quản trị viên' ? true : Boolean(editForm.canSyncGmail),
+      };
+      await updateUserProfileData(editingUser.id || editingUser.uid, payloadToSave, user);
       toast.success(`Đã cập nhật thông tin cán bộ "${editForm.displayName}"!`);
       setEditModalOpen(false);
       await load();
@@ -261,6 +299,7 @@ const UsersManagementPage = () => {
                 <th>Số ĐT</th>
                 <th style={{ textAlign: 'center' }}>Vai trò</th>
                 <th style={{ textAlign: 'center' }}>Trạng thái</th>
+                <th style={{ textAlign: 'center' }}>Đồng bộ Gmail</th>
                 <th>Ngày tạo</th>
                 <th style={{ textAlign: 'center' }}>Thao tác quản trị</th>
               </tr>
@@ -268,7 +307,7 @@ const UsersManagementPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={11}>
                     <div className="page-loading">
                       <div className="spinner" />
                       <span>Đang tải danh sách người dùng...</span>
@@ -277,7 +316,7 @@ const UsersManagementPage = () => {
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={11}>
                     <div className="table-empty">
                       <p>{search ? 'Không tìm thấy người dùng phù hợp.' : 'Chưa có tài khoản nào được ghi nhận.'}</p>
                     </div>
@@ -288,6 +327,7 @@ const UsersManagementPage = () => {
                   const isAdmin = u.role === 'Quản trị viên' || u.role === 'admin';
                   const isLocked = u.status === 'locked';
                   const isCurrent = u.uid === user.uid;
+                  const hasGmailSync = isAdmin || u.canSyncGmail === true;
 
                   return (
                     <tr key={u.id || u.uid} style={isLocked ? { opacity: 0.65, background: '#fef2f2' } : {}}>
@@ -310,10 +350,28 @@ const UsersManagementPage = () => {
                           {isLocked ? 'Đã khóa' : 'Hoạt động'}
                         </span>
                       </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className={`badge ${hasGmailSync ? 'badge-success' : 'badge-default'}`}>
+                          {isAdmin ? 'Mặc định' : (u.canSyncGmail === true ? 'Đã cấp' : 'Chưa cấp')}
+                        </span>
+                      </td>
                       <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                         {formatTimestamp(u.createdAt)}
                       </td>
                       <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        {/* Cấp / Thu hồi quyền đồng bộ Gmail */}
+                        {!isAdmin && (
+                          <>
+                            <button
+                              className={`btn ${u.canSyncGmail === true ? 'btn-outline' : 'btn-primary'} btn-xs`}
+                              onClick={() => handleToggleGmailSync(u)}
+                              title={u.canSyncGmail === true ? 'Thu hồi quyền đồng bộ Gmail' : 'Cấp quyền dán nhãn đồng bộ Gmail lên web'}
+                            >
+                              {u.canSyncGmail === true ? 'Tắt Gmail' : 'Cấp Gmail'}
+                            </button>
+                            {' '}
+                          </>
+                        )}
                         {/* Sửa thông tin cá nhân: Mã CB, SĐT, Phòng ban */}
                         <button
                           className="btn btn-outline btn-xs"
@@ -449,6 +507,23 @@ const UsersManagementPage = () => {
                   <option value="locked">Bị khóa</option>
                 </select>
               </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, cursor: editForm.role === 'Quản trị viên' ? 'default' : 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={editForm.role === 'Quản trị viên' ? true : editForm.canSyncGmail}
+                  onChange={e => setEditForm(p => ({ ...p, canSyncGmail: e.target.checked }))}
+                  disabled={editForm.role === 'Quản trị viên' || savingEdit}
+                />
+                <span>
+                  <strong>Cho phép đồng bộ Văn bản Đến từ Gmail</strong>
+                  {editForm.role === 'Quản trị viên' && (
+                    <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--text-muted)' }}>(Admin mặc định được phép)</span>
+                  )}
+                </span>
+              </label>
             </div>
 
             <div className="form-group" style={{ marginBottom: 16 }}>

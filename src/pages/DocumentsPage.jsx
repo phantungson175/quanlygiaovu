@@ -15,6 +15,7 @@ import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';
 import FilePill from '../components/common/FilePill';
 import UploadArea from '../components/common/UploadArea';
+import GmailSyncModal from '../components/common/GmailSyncModal';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
 
@@ -32,7 +33,7 @@ const getDocYear = (d) => {
 };
 
 const DocumentsPage = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, canSyncGmail } = useAuth();
   const confirm = useConfirm();
   const [tab, setTab] = useState('incoming');
   const [inDocs, setInDocs] = useState([]);
@@ -69,6 +70,9 @@ const DocumentsPage = () => {
   const [createYearModalOpen, setCreateYearModalOpen] = useState(false);
   const [customYears, setCustomYears] = useState([]);
   const [newYearInput, setNewYearInput] = useState('');
+
+  // Modal Thiết lập đồng bộ Gmail
+  const [gmailModalOpen, setGmailModalOpen] = useState(false);
 
   const currentParentId = folderPath.length > 0 ? folderPath[folderPath.length - 1].id : null;
   const currentFolderName = folderPath.length > 0 ? folderPath[folderPath.length - 1].name : null;
@@ -428,6 +432,17 @@ const DocumentsPage = () => {
           </button>
         )}
 
+
+        {tab === 'incoming' && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setGmailModalOpen(true)}
+            title={canSyncGmail ? 'Thiết lập tự động đồng bộ từ Gmail' : 'Xem thông tin cấp quyền đồng bộ Gmail'}
+          >
+            {canSyncGmail ? '📧 Đồng bộ Gmail' : '🔒 Đồng bộ Gmail'}
+          </button>
+        )}
 
         <button className="btn btn-primary" onClick={openModal}>
           + Thêm {tab === 'incoming' ? 'Văn bản Đến' : 'Văn bản Đi'}
@@ -943,6 +958,11 @@ const DocumentsPage = () => {
           <textarea className="form-control" rows={2} value={form.notes} onChange={e => setF('notes', e.target.value)} />
         </div>
       </Modal>
+
+      <GmailSyncModal
+        isOpen={gmailModalOpen}
+        onClose={() => setGmailModalOpen(false)}
+      />
 
     </div>
   );

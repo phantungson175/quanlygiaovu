@@ -1,9 +1,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Cho phép tất cả tài khoản đã đăng nhập vào hệ thống được đọc và ghi dữ liệu
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasUserDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return hasUserDoc() && (userDoc().role == 'Quản trị viên' || userDoc().role == 'admin');
+    }
+
+    function canSyncGmail() {
+      return isAdmin() || (hasUserDoc() && userDoc().get('canSyncGmail', false) == true);
+    }
+
+    // Văn bản đến: chỉ tài khoản được Admin cấp quyền (hoặc Admin) mới được ghi bản ghi đồng bộ từ Gmail
+    match /docs_incoming/{docId} {
+      allow read, update, delete: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.resource.data.get('source', '') != 'gmail' || canSyncGmail()
+      );
+    }
+
+    // Cho phép tài khoản đã đăng nhập đọc và ghi các phân hệ khác
+    match /{col}/{docId=**} {
+      allow read, write: if isSignedIn() && col != 'docs_incoming';
     }
   }
 }

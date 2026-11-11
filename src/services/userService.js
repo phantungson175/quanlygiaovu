@@ -144,6 +144,31 @@ export const toggleUserStatus = async (uid, currentStatus, adminUser) => {
 };
 
 /**
+ * Cấp hoặc thu hồi quyền đồng bộ văn bản từ Gmail (gắn nhãn VanBanDen) cho tài khoản
+ */
+export const toggleUserGmailSync = async (uid, currentEnabled, adminUser) => {
+  try {
+    const nextEnabled = !currentEnabled;
+    const userRef = doc(db, COL, uid);
+    await updateDoc(userRef, {
+      canSyncGmail: nextEnabled,
+      updatedAt: serverTimestamp(),
+    });
+
+    await logAction({
+      action: nextEnabled ? 'grant_gmail_sync' : 'revoke_gmail_sync',
+      module: 'Quản trị Tài khoản',
+      detail: `${nextEnabled ? 'Cấp' : 'Thu hồi'} quyền đồng bộ Gmail cho UID: ${uid}`,
+      user: adminUser,
+    });
+    return nextEnabled;
+  } catch (err) {
+    console.error('Lỗi thay đổi quyền đồng bộ Gmail:', err);
+    throw err;
+  }
+};
+
+/**
  * Xóa tài khoản khỏi Firestore
  */
 export const deleteUserDoc = async (uid, displayName, adminUser) => {
@@ -176,6 +201,7 @@ export const updateUserProfileData = async (uid, data, adminUser) => {
     };
     if (data.role) payload.role = data.role;
     if (data.status) payload.status = data.status;
+    if (typeof data.canSyncGmail === 'boolean') payload.canSyncGmail = data.canSyncGmail;
 
     await setDoc(userRef, payload, { merge: true });
 

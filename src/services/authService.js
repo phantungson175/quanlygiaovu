@@ -7,6 +7,11 @@ import {
   updateProfile,
   sendEmailVerification,
   sendPasswordResetEmail,
+  EmailAuthProvider,
+  linkWithCredential,
+  updatePassword,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
 } from 'firebase/auth';
 import {
   doc, setDoc, getDoc, getDocs, collection, serverTimestamp
@@ -80,6 +85,7 @@ export const registerWithEmail = async (email, password, displayName, extraData 
       phone: extraData.phone || '',
       role,
       status: 'active',
+      canSyncGmail: role === 'Quản trị viên',
       createdAt: serverTimestamp(),
     });
   } catch (err) {
@@ -155,6 +161,7 @@ export const getUserProfile = async (uid) => {
         phone: '',
         role,
         status: 'active',
+        canSyncGmail: role === 'Quản trị viên',
         createdAt: serverTimestamp(),
       };
       await setDoc(userRef, newProfile);
@@ -180,13 +187,64 @@ export const loginWithGoogle = async () => {
 };
 
 /**
- * Đặt mật khẩu đăng nhập trực tiếp cho tài khoản (kể cả tài khoản Google)
- * Giúp người dùng lần sau có thể gõ Email và Mật khẩu vào ô đăng nhập
+ * Kiểm tra các phương thức đăng nhập đang gắn với tài khoản hiện tại
  */
-export const setAccountPassword = async (newPassword) => {
-  if (!auth.currentUser) throw new Error('Chưa đăng nhập');
-  const { updatePassword } = await import('firebase/auth');
-  await updatePassword(auth.currentUser, newPassword);
+export const getAccountAuthInfo = (u = auth.currentUser) => {
+  const providers = u?.providerData?.map(p => p.providerId) || [];
+  return {
+    hasPassword: providers.includes('password'),
+    hasGoogle: providers.includes('google.com'),
+  };
+};
+
+/**
+ * Đặt hoặc đổi mật khẩu đăng nhập trực tiếp cho tài khoản (kể cả tài khoản Google)
+ * Giúp người dùng đăng nhập bằng Email + Mật khẩu hoặc dùng cho đồng bộ Gmail
+ */
+export const setAccountPassword = async (newPassword, currentPassword = '') => {
+  const currentUser = auth.currentUser;
+  if (!currentUser || !currentUser.email) {
+    throw new Error('Không tìm thấy phiên đăng nhập hiện tại.');
+  }
+
+  const { hasPassword, hasGoogle } = getAccountAuthInfo(currentUser);
+
+  const applyPassword = async () => {
+    if (!hasPassword) {
+      try {
+        const cred = EmailAuthProvider.credential(currentUser.email, newPassword);
+        await linkWithCredential(currentUser, cred);
+        return;
+      } catch (linkErr) {
+        if (linkErr?.code !== 'auth/provider-already-linked') {
+          throw linkErr;
+        }
+      }
+    }
+    await updatePassword(currentUser, newPassword);
+  };
+
+  try {
+    await applyPassword();
+  } catch (err) {
+    if (err?.code === 'auth/requires-recent-login') {
+      if (hasPassword && currentPassword) {
+        const cred = EmailAuthProvider.credential(currentUser.email, currentPassword);
+        await reauthenticateWithCredential(currentUser, cred);
+        await applyPassword();
+      } else if (hasGoogle) {
+        googleProvider.setCustomParameters({ login_hint: currentUser.email });
+        await reauthenticateWithPopup(currentUser, googleProvider);
+        await applyPassword();
+      } else {
+        throw new Error('Vì lý do bảo mật, vui lòng nhập mật khẩu hiện tại (hoặc đăng xuất rồi đăng nhập lại) trước khi đổi mật khẩu.');
+      }
+    } else {
+      throw err;
+    }
+  }
+
+  await currentUser.reload();
 };
 
 /**

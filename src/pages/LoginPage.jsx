@@ -1,6 +1,7 @@
 // src/pages/LoginPage.jsx
 import { useState } from 'react';
 import { loginWithEmail, loginWithGoogle, registerWithEmail, resetPassword } from '../services/authService';
+import Modal from '../components/common/Modal';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
@@ -103,7 +104,10 @@ const LoginPage = () => {
     setSendingReset(true);
     try {
       await resetPassword(forgotEmail.trim());
-      toast.success(`Đã gửi liên kết đặt lại mật khẩu đến ${forgotEmail}! Vui lòng kiểm tra hộp thư (cả thư mục Spam).`, { duration: 6000 });
+      toast.success(
+        `Nếu email ${forgotEmail.trim()} đã từng đăng ký mật khẩu, hệ thống đã gửi liên kết đặt lại tới hộp thư (kiểm tra cả Spam).`,
+        { duration: 6000 }
+      );
       setForgotModalOpen(false);
     } catch (err) {
       console.error('Reset password error:', err);
@@ -278,51 +282,74 @@ const LoginPage = () => {
       </div>
 
       {/* MODAL QUÊN MẬT KHẨU */}
-      {forgotModalOpen && (
-        <div className="modal-backdrop" onClick={() => setForgotModalOpen(false)}>
-          <div className="modal-content" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>🔑 Khôi phục mật khẩu</h3>
-              <button className="modal-close" onClick={() => setForgotModalOpen(false)}>✕</button>
+      <Modal
+        open={forgotModalOpen}
+        onClose={() => !sendingReset && setForgotModalOpen(false)}
+        title="🔑 Khôi phục mật khẩu"
+        size="modal-sm"
+        closeOnBackdrop={!sendingReset}
+      >
+        <form onSubmit={handleSendResetPassword}>
+          <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
+            Nhập địa chỉ email tài khoản của bạn. Hệ thống sẽ gửi một liên kết an toàn để bạn đặt lại mật khẩu mới.
+          </p>
+          <div style={{
+            fontSize: 12.5,
+            color: '#92400e',
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: 6,
+            padding: '10px 12px',
+            marginBottom: 14,
+            lineHeight: 1.5,
+          }}>
+            <div>
+              Nếu trước giờ bạn chỉ bấm <strong>"Đăng nhập bằng tài khoản Google"</strong> và chưa từng đặt mật khẩu, hệ thống sẽ không gửi được email khôi phục.
             </div>
-            <form onSubmit={handleSendResetPassword}>
-              <div className="modal-body" style={{ padding: '18px 24px' }}>
-                <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
-                  Nhập địa chỉ email tài khoản của bạn. Hệ thống sẽ gửi một liên kết an toàn để bạn tự tạo mật khẩu mới.
-                </p>
-                <div className="form-group">
-                  <label className="form-label">Email tài khoản *</label>
-                  <input
-                    className="form-control"
-                    type="email"
-                    value={forgotEmail}
-                    onChange={e => setForgotEmail(e.target.value)}
-                    required
-                    autoFocus
-                  />
-                </div>
-              </div>
-              <div className="modal-footer" style={{ padding: '12px 24px' }}>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => setForgotModalOpen(false)}
-                  disabled={sendingReset}
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={sendingReset}
-                >
-                  {sendingReset ? 'Đang gửi email...' : 'Gửi liên kết đặt lại mật khẩu'}
-                </button>
-              </div>
-            </form>
+            <button
+              type="button"
+              className="btn btn-outline btn-xs"
+              style={{ marginTop: 8, background: '#fff', borderColor: '#f59e0b', color: '#92400e', fontWeight: 600 }}
+              disabled={sendingReset || loading}
+              onClick={() => {
+                setForgotModalOpen(false);
+                handleGoogle();
+              }}
+            >
+              Đăng nhập bằng Google để tạo mật khẩu trong Hồ sơ →
+            </button>
           </div>
-        </div>
-      )}
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label className="form-label">Email tài khoản *</label>
+            <input
+              className="form-control"
+              type="email"
+              value={forgotEmail}
+              onChange={e => setForgotEmail(e.target.value)}
+              placeholder="nhap_email_cua_ban@gmail.com"
+              required
+              autoFocus
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setForgotModalOpen(false)}
+              disabled={sendingReset}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={sendingReset}
+            >
+              {sendingReset ? 'Đang gửi email...' : 'Gửi liên kết đặt lại mật khẩu'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
