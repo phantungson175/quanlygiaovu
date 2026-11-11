@@ -1,7 +1,14 @@
+import {
+  collection, doc, setDoc, getDocs, query, where, deleteDoc, serverTimestamp,
+} from 'firebase/firestore';
+import { db } from './firebase';
 import toast from 'react-hot-toast';
 
 const DB_NAME = 'GiaoVuStorageDB';
 const STORE_NAME = 'files';
+const CHUNK_COLLECTION = 'file_chunks';
+const CHUNK_SIZE = 550 * 1024;
+const MAX_CLOUD_FILE_BYTES = 15 * 1024 * 1024;
 
 /**
  * Kiểm tra xem URL có phải liên kết Google Drive hay không
@@ -165,17 +172,86 @@ export const getFileFromIndexedDB = async (fileId) => {
 };
 
 /**
- * Upload file an toàn & tối ưu:
+ * Lưu tệp lớn theo từng phân mảnh (chunks) lên Cloud Firestore để mọi thiết bị đều xem/tải được
+ */
+const saveFileChunksToFirestore = async (fileId, fileName, dataUrl) => {
+  const total = Math.ceil(dataUrl.length / CHUNK_SIZE);
+  const tasks = [];
+  for (let i = 0; i < total; i++) {
+    const slice = dataUrl.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+    tasks.push(() =>
+      setDoc(doc(db, CHUNK_COLLECTION, `${fileId}_${i}`), {
+        fileId,
+        fileName,
+        index: i,
+        total,
+        data: slice,
+        createdAt: serverTimestamp(),
+      })
+    );
+  }
+  for (let i = 0; i < tasks.length; i += 4) {
+    await Promise.all(tasks.slice(i, i + 4).map(fn => fn()));
+  }
+  return `fs://${fileId}`;
+};
+
+/**
+ * Tải lại tệp phân mảnh từ Cloud Firestore (có cache cục bộ vào IndexedDB để mở lại tức thì)
+ */
+const loadFileFromFirestoreChunks = async (fileId) => {
+  // Kiểm tra cache cục bộ trước
+  const cachedFile = await getFileFromIndexedDB(fileId);
+  if (cachedFile) {
+    return cachedFile;
+  }
+
+  // Tải từ Cloud Firestore
+  const q = query(collection(db, CHUNK_COLLECTION), where('fileId', '==', fileId));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+
+  const parts = snap.docs.map(d => d.data()).sort((a, b) => a.index - b.index);
+  const expectedTotal = parts[0]?.total;
+  if (expectedTotal && parts.length < expectedTotal) {
+    return null;
+  }
+
+  const fullDataUrl = parts.map(p => p.data).join('');
+  const blob = dataUrlToBlob(fullDataUrl);
+  if (!blob) return null;
+
+  // Lưu cache vào IndexedDB của thiết bị hiện tại
+  const fileName = parts[0]?.fileName || 'tai_lieu';
+  const fileObj = new File([blob], fileName, { type: blob.type || getMimeTypeFromFileName(fileName) });
+  await saveFileToIndexedDB(fileId, fileObj);
+  return fileObj;
+};
+
+/**
+ * Xóa các phân mảnh đám mây khi xóa bản ghi
+ */
+export const deleteCloudFileChunks = async (fileUrl) => {
+  if (!fileUrl || typeof fileUrl !== 'string' || !fileUrl.startsWith('fs://')) return;
+  const fileId = fileUrl.replace('fs://', '');
+  try {
+    const q = query(collection(db, CHUNK_COLLECTION), where('fileId', '==', fileId));
+    const snap = await getDocs(q);
+    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, CHUNK_COLLECTION, d.id))));
+  } catch (err) {
+    console.warn('Không thể dọn dữ liệu phân mảnh tệp:', err);
+  }
+};
+
+/**
+ * Upload file an toàn & đồng bộ đám mây trên mọi thiết bị:
  * 1. Nếu là liên kết ngoài (Google Drive / Web Link): Lưu trực tiếp URL và tên hiển thị.
  * 2. Nếu là ảnh: Tự động nén WebP trước khi chuyển Base64.
- * 3. Nếu file < 750KB: Lưu trực tiếp Data URL vào Firestore (đám mây hoàn toàn miễn phí).
- * 4. Nếu file lớn: Lưu vào IndexedDB nội bộ để không vượt quá giới hạn Firestore.
- * @param {string} pathPrefix - Thư mục phân loại (scores, contracts, documents...)
- * @param {File|Object} file - File người dùng chọn hoặc Object liên kết Drive
- * @returns {Promise<{fileUrl: string|null, fileName: string|null}>}
+ * 3. Nếu file nhỏ (<= ngưỡng Data URL): Lưu trực tiếp vào bản ghi Firestore.
+ * 4. Nếu file vừa & lớn (<= 15MB): Tự động phân mảnh lưu lên Cloud Firestore (fs://) để mọi tài khoản & máy tính đều xem được.
  */
 export const uploadFileSafely = async (pathPrefix, file, options = {}) => {
-  const { maxDataUrlChars = 800 * 1024 } = options;
+  const { maxDataUrlChars = 650 * 1024 } = options;
   if (!file) return { fileUrl: null, fileName: null };
 
   // Trường hợp 1: Người dùng dán link Google Drive hoặc link ngoài
@@ -204,7 +280,12 @@ export const uploadFileSafely = async (pathPrefix, file, options = {}) => {
     }
   }
 
-  const fileId = `${pathPrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  if (processedFile.size > MAX_CLOUD_FILE_BYTES) {
+    throw new Error('Tệp vượt quá 15MB. Vui lòng chuyển sang tab "Google Drive / Đám mây" để đính kèm tệp dung lượng lớn!');
+  }
+
+  const safePrefix = String(pathPrefix || 'file').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const fileId = `${safePrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
   // Đọc file thành Data URL Base64
   const dataUrl = await new Promise((resolve, reject) => {
@@ -214,22 +295,23 @@ export const uploadFileSafely = async (pathPrefix, file, options = {}) => {
     reader.readAsDataURL(processedFile);
   });
 
-  // Luôn lưu bản sao gốc vào IndexedDB để tải về mượt mà
+  // Lưu bản sao cache vào IndexedDB nội bộ để người gửi mở lại tức thì
   await saveFileToIndexedDB(fileId, processedFile);
 
-  // Chỉ lưu Data URL vào Firestore nếu nằm trong ngưỡng an toàn (< 800KB chuỗi Base64)
+  // Nếu vừa trong ngưỡng lưu thẳng cùng document
   if (typeof dataUrl === 'string' && dataUrl.length <= maxDataUrlChars) {
     return {
       fileUrl: dataUrl,
       fileName: processedFile.name,
     };
-  } else {
-    // Nếu vượt ngưỡng an toàn Firestore: Lưu đường dẫn idb để không làm lỗi ghi Firestore
-    return {
-      fileUrl: `idb://${fileId}`,
-      fileName: processedFile.name,
-    };
   }
+
+  // Ngược lại: Lưu phân mảnh lên Cloud Firestore để mọi tài khoản & thiết bị khác đều xem/tải được
+  const cloudUrl = await saveFileChunksToFirestore(fileId, processedFile.name, dataUrl);
+  return {
+    fileUrl: cloudUrl,
+    fileName: processedFile.name,
+  };
 };
 
 /**
@@ -245,7 +327,30 @@ export const downloadFileSafely = async (fileUrl, fileName) => {
     return true;
   }
 
-  // Nếu là tệp IndexedDB
+  // Tệp lưu phân mảnh trên Cloud Firestore (fs://)
+  if (fileUrl.startsWith('fs://')) {
+    const fileId = fileUrl.replace('fs://', '');
+    try {
+      const file = await loadFileFromFirestoreChunks(fileId);
+      if (file) {
+        const blobUrl = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName || file.name || 'tai_ve';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+        return true;
+      }
+    } catch (err) {
+      console.error('Lỗi tải tệp từ đám mây:', err);
+    }
+    toast.error('Không tìm thấy dữ liệu tệp trên máy chủ đám mây.');
+    return false;
+  }
+
+  // Tệp lưu cục bộ cũ (idb://)
   if (fileUrl.startsWith('idb://')) {
     const fileId = fileUrl.replace('idb://', '');
     const file = await getFileFromIndexedDB(fileId);
@@ -260,7 +365,7 @@ export const downloadFileSafely = async (fileUrl, fileName) => {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
       return true;
     }
-    toast.error('Tệp đính kèm này chưa được đồng bộ trên thiết bị hiện tại.');
+    toast.error('Tệp cũ này chỉ lưu ở máy người gửi. Hãy nhờ người gửi tải lại 1 lần để đồng bộ cho mọi người!');
     return false;
   }
 
@@ -343,7 +448,26 @@ export const resolveFileForPreview = async (fileUrl, fileName) => {
       };
     }
 
-    // 2. Tệp lưu trong IndexedDB (idb://)
+    // 2. Tệp phân mảnh trên Cloud Firestore (fs://)
+    if (fileUrl.startsWith('fs://')) {
+      const fileId = fileUrl.replace('fs://', '');
+      const file = await loadFileFromFirestoreChunks(fileId);
+      if (file) {
+        const objectUrl = URL.createObjectURL(file);
+        return {
+          previewUrl: objectUrl,
+          isBlob: true,
+          mimeType: file.type || getMimeTypeFromFileName(fileName),
+          size: file.size,
+          file,
+        };
+      }
+      return {
+        error: 'Không tìm thấy dữ liệu tệp trên máy chủ đám mây.',
+      };
+    }
+
+    // 3. Tệp lưu cục bộ cũ trong IndexedDB (idb://)
     if (fileUrl.startsWith('idb://')) {
       const fileId = fileUrl.replace('idb://', '');
       const file = await getFileFromIndexedDB(fileId);
@@ -358,7 +482,7 @@ export const resolveFileForPreview = async (fileUrl, fileName) => {
         };
       }
       return {
-        error: 'Tệp đính kèm này chưa được đồng bộ trên thiết bị hiện tại.',
+        error: 'Tệp này được tải lên trước khi bật đồng bộ đám mây nên chỉ lưu ở thiết bị cũ. Người gửi vui lòng tải lại tệp này 1 lần để mọi tài khoản đều xem được.',
       };
     }
 

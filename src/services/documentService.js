@@ -1,9 +1,9 @@
 // src/services/documentService.js
 import {
   collection, addDoc, updateDoc, deleteDoc,
-  doc, getDocs, orderBy, query, serverTimestamp,
+  doc, getDoc, getDocs, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
-import { uploadFileSafely } from './storageHelper';
+import { uploadFileSafely, deleteCloudFileChunks } from './storageHelper';
 import { db } from './firebase';
 import { logAction } from './auditService';
 
@@ -35,6 +35,10 @@ export const updateIncomingDocStatus = async (id, status, user) => {
 };
 
 export const deleteIncomingDoc = async (id, refNo, user) => {
+  try {
+    const snap = await getDoc(doc(db, COL_IN, id));
+    if (snap.exists()) await deleteCloudFileChunks(snap.data().fileUrl);
+  } catch {}
   await deleteDoc(doc(db, COL_IN, id));
   await logAction({ action: 'delete', module: 'Văn bản đến', detail: `Xóa: ${refNo}`, user });
 };
@@ -64,6 +68,10 @@ export const updateOutgoingDocStatus = async (id, status, user) => {
 };
 
 export const deleteOutgoingDoc = async (id, refNo, user) => {
+  try {
+    const snap = await getDoc(doc(db, COL_OUT, id));
+    if (snap.exists()) await deleteCloudFileChunks(snap.data().fileUrl);
+  } catch {}
   await deleteDoc(doc(db, COL_OUT, id));
   await logAction({ action: 'delete', module: 'Văn bản đi', detail: `Xóa: ${refNo}`, user });
 };

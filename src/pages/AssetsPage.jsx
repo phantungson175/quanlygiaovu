@@ -221,8 +221,8 @@ const AssetsPage = () => {
       if (selectedYear) {
         await loadSubfolders(selectedYear, currentParentId);
       }
-    } catch {
-      toast.error('Lỗi khi lưu. Vui lòng thử lại!');
+    } catch (err) {
+      toast.error(err?.message || 'Lỗi khi lưu. Vui lòng thử lại!');
     } finally {
       setSaving(false);
     }

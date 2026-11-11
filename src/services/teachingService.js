@@ -1,9 +1,9 @@
 // src/services/teachingService.js
 import {
   collection, addDoc, updateDoc, deleteDoc,
-  doc, getDocs, orderBy, query, serverTimestamp,
+  doc, getDoc, getDocs, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
-import { uploadFileSafely } from './storageHelper';
+import { uploadFileSafely, deleteCloudFileChunks } from './storageHelper';
 import { db } from './firebase';
 import { logAction } from './auditService';
 
@@ -13,7 +13,7 @@ const COL_CONTRACT = 'teaching_contract';
 // Tải nhiều tệp đính kèm với tổng ngưỡng an toàn cho 1 tài liệu Firestore
 const uploadMultipleAttachmentsSafely = async (pathPrefix, files = []) => {
   const attachments = [];
-  let remainingBudgetChars = 820 * 1024;
+  let remainingBudgetChars = 650 * 1024;
   for (const file of files) {
     const { fileUrl, fileName } = await uploadFileSafely(pathPrefix, file, {
       maxDataUrlChars: Math.max(0, remainingBudgetChars),
@@ -26,6 +26,15 @@ const uploadMultipleAttachmentsSafely = async (pathPrefix, files = []) => {
     }
   }
   return attachments;
+};
+
+const cleanupTeachingAttachments = async (colName, id) => {
+  try {
+    const snap = await getDoc(doc(db, colName, id));
+    if (snap.exists() && Array.isArray(snap.data().attachments)) {
+      await Promise.all(snap.data().attachments.map(a => deleteCloudFileChunks(a?.url)));
+    }
+  } catch {}
 };
 
 // ---- ĐỊNH MỨC ----
@@ -51,6 +60,7 @@ export const updateTeachingNorm = async (id, data, user) => {
 };
 
 export const deleteTeachingNorm = async (id, name, user) => {
+  await cleanupTeachingAttachments(COL_NORM, id);
   await deleteDoc(doc(db, COL_NORM, id));
   await logAction({ action: 'delete', module: 'KLGD Định mức', detail: `Xóa: ${name}`, user });
 };
@@ -73,6 +83,7 @@ export const addTeachingContract = async (data, files, user) => {
 };
 
 export const deleteTeachingContract = async (id, name, user) => {
+  await cleanupTeachingAttachments(COL_CONTRACT, id);
   await deleteDoc(doc(db, COL_CONTRACT, id));
   await logAction({ action: 'delete', module: 'KLGD Hợp đồng', detail: `Xóa: ${name}`, user });
 };

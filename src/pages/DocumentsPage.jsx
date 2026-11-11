@@ -180,8 +180,8 @@ const DocumentsPage = () => {
       if (selectedYear) {
         await loadSubfolders(selectedYear, currentParentId);
       }
-    } catch {
-      toast.error('Lỗi khi lưu văn bản!');
+    } catch (err) {
+      toast.error(err?.message || 'Lỗi khi lưu văn bản!');
     } finally {
       setSaving(false);
     }
@@ -869,7 +869,7 @@ const DocumentsPage = () => {
             onFileSelect={files => setDocFile(files[0])}
             allowedTypes={['pdf', 'docx', 'doc', 'jpg', 'jpeg', 'png']}
             accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
-            hint="PDF, Word, Ảnh scan – Tối đa 20MB"
+            hint="PDF, Word, Ảnh scan – Tối đa 15MB"
             selectedFiles={docFile ? [docFile] : []}
           />
         </div>

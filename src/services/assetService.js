@@ -2,9 +2,9 @@
 // CRUD tài sản - Firebase Firestore
 import {
   collection, addDoc, updateDoc, deleteDoc,
-  doc, getDocs, orderBy, query, serverTimestamp,
+  doc, getDoc, getDocs, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
-import { uploadFileSafely } from './storageHelper';
+import { uploadFileSafely, deleteCloudFileChunks } from './storageHelper';
 import { db } from './firebase';
 import { logAction } from './auditService';
 
@@ -47,6 +47,10 @@ export const updateAsset = async (id, data, file, user) => {
 };
 
 export const deleteAsset = async (id, name, user) => {
+  try {
+    const snap = await getDoc(doc(db, COL, id));
+    if (snap.exists()) await deleteCloudFileChunks(snap.data().fileUrl);
+  } catch {}
   await deleteDoc(doc(db, COL, id));
   await logAction({ action: 'delete', module: 'Tài sản', detail: `Xóa: ${name}`, user });
 };

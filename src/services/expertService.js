@@ -2,9 +2,9 @@
 // CRUD chuyên gia thỉnh giảng - Firebase Firestore + Storage
 import {
   collection, addDoc, updateDoc, deleteDoc,
-  doc, getDocs, orderBy, query, serverTimestamp,
+  doc, getDoc, getDocs, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
-import { uploadFileSafely } from './storageHelper';
+import { uploadFileSafely, deleteCloudFileChunks } from './storageHelper';
 import { db } from './firebase';
 import { logAction } from './auditService';
 
@@ -46,6 +46,10 @@ export const updateExpert = async (id, data, contractFile, user) => {
 };
 
 export const deleteExpert = async (id, name, user) => {
+  try {
+    const snap = await getDoc(doc(db, COL, id));
+    if (snap.exists()) await deleteCloudFileChunks(snap.data().contractFileUrl);
+  } catch {}
   await deleteDoc(doc(db, COL, id));
   await logAction({ action: 'delete', module: 'Thỉnh giảng', detail: `Xóa: ${name}`, user });
 };

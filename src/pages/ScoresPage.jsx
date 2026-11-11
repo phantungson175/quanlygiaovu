@@ -755,7 +755,7 @@ const ScoresPage = () => {
             onFileSelect={files => setSelectedFile(files[0])}
             allowedTypes={['pdf', 'xlsx', 'xls', 'docx', 'doc', 'jpg', 'jpeg', 'png']}
             accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png"
-            hint="Excel, Word, PDF, Ảnh scan – Tối đa 20MB"
+            hint="Excel, Word, PDF, Ảnh scan – Tối đa 15MB"
             selectedFiles={selectedFile ? [selectedFile] : []}
           />
         </div>

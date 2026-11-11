@@ -152,8 +152,8 @@ const TeachingPage = () => {
       if (selectedYear) {
         await loadSubfolders(selectedYear, currentParentId);
       }
-    } catch {
-      toast.error('Lỗi khi lưu!');
+    } catch (err) {
+      toast.error(err?.message || 'Lỗi khi lưu!');
     } finally {
       setSaving(false);
     }

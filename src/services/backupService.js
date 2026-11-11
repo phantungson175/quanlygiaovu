@@ -15,6 +15,7 @@ export const BACKUP_COLLECTIONS = [
   { key: 'teaching_contract', label: 'Hợp đồng Giảng dạy' },
   { key: 'scores', label: 'File Điểm Đại học' },
   { key: 'custom_folders', label: 'Cây Thư mục & Năm' },
+  { key: 'file_chunks', label: 'Dữ liệu Tệp Đính kèm' },
   { key: 'users', label: 'Tài khoản & Phân quyền' },
   { key: 'audit_logs', label: 'Nhật ký Hoạt động' },
 ];
