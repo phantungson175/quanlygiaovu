@@ -440,7 +440,7 @@ const DocumentsPage = () => {
             onClick={() => setGmailModalOpen(true)}
             title={canSyncGmail ? 'Thiết lập tự động đồng bộ từ Gmail' : 'Xem thông tin cấp quyền đồng bộ Gmail'}
           >
-            {canSyncGmail ? '📧 Đồng bộ Gmail' : '🔒 Đồng bộ Gmail'}
+            Đồng bộ Gmail
           </button>
         )}
 

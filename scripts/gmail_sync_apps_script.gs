@@ -1,50 +1,27 @@
-/**
- * ============================================================================
- * SCRIPT TỰ ĐỘNG ĐỒNG BỘ VĂN BẢN ĐẾN TỪ GMAIL -> HỆ THỐNG QUẢN LÝ GIÁO VỤ
- * Chạy miễn phí 0đ trên Google Apps Script (https://script.google.com)
- * ============================================================================
- */
-
+// Đồng bộ văn bản đến từ Gmail lên Hệ thống Quản lý Giáo vụ
 const CONFIG = {
-  // 1. Tài khoản Email & Mật khẩu bạn đã đăng ký (và xác thực email) trên trang web Quản lý Giáo vụ
   FIREBASE_EMAIL: 'DIEN_EMAIL_TAI_KHOAN_WEB_CUA_BAN@gmail.com',
   FIREBASE_PASSWORD: 'DIEN_MAT_KHAU_TAI_KHOAN_WEB',
-
-  // 2. Cấu hình dự án Firebase (đã điền sẵn đúng theo hệ thống của bạn)
   FIREBASE_PROJECT_ID: 'qlgiaovu',
   FIREBASE_API_KEY: 'AIzaSyCdk0k-bVwRRIgT5G1_wV8EfOufY5v4qYU',
-
-  // 3. Tên nhãn (Label) trong Gmail để nhận diện công văn đến (tự động tạo nếu chưa có)
   LABEL_INBOX: 'VanBanDen',
   LABEL_DONE: 'DaDongBo',
-
-  // 4. Tên thư mục trên Google Drive để lưu tự động tệp đính kèm từ email
   DRIVE_FOLDER_NAME: 'QuanLyGiaoVu_VanBanDen',
 };
 
-/**
- * HÀM CÀI ĐẶT 1 LẦN DUY NHẤT:
- * Hãy chọn hàm "caiDatTuDong" ở thanh công cụ phía trên và bấm "Chạy (Run)" 1 lần đầu tiên.
- * Hàm này sẽ:
- * - Tạo nhãn Gmail "VanBanDen" và "DaDongBo"
- * - Tạo thư mục Drive "QuanLyGiaoVu_VanBanDen"
- * - Kiểm tra kết nối đăng nhập lên trang web
- * - Tự động đặt lịch quét Gmail mỗi 5 phút
- */
+// Chạy hàm này 1 lần để tạo nhãn, thư mục Drive và bật lịch quét 5 phút
 function caiDatTuDong() {
   if (!CONFIG.FIREBASE_EMAIL || CONFIG.FIREBASE_EMAIL.includes('DIEN_EMAIL')) {
-    throw new Error('Vui lòng điền FIREBASE_EMAIL và FIREBASE_PASSWORD thật của bạn ở phần CONFIG phía trên trước khi chạy!');
+    throw new Error('Vui lòng điền FIREBASE_EMAIL và FIREBASE_PASSWORD ở phần CONFIG trước khi chạy.');
   }
 
   getOrCreateLabel_(CONFIG.LABEL_INBOX);
   getOrCreateLabel_(CONFIG.LABEL_DONE);
   getOrCreateDriveFolder_(CONFIG.DRIVE_FOLDER_NAME);
 
-  // Kiểm tra đăng nhập Firebase
   const authInfo = signInFirebase_();
-  Logger.log('✅ Đăng nhập Firebase thành công!');
+  Logger.log('Đăng nhập Firebase thành công.');
 
-  // Tạo Trigger tự động chạy mỗi 5 phút (nếu chưa có)
   const triggers = ScriptApp.getProjectTriggers();
   const exists = triggers.some(t => t.getHandlerFunction() === 'syncGmailToGiaoVu');
   if (!exists) {
@@ -52,39 +29,29 @@ function caiDatTuDong() {
       .timeBased()
       .everyMinutes(5)
       .create();
-    Logger.log('✅ Đã bật lịch chạy tự động mỗi 5 phút!');
+    Logger.log('Đã bật lịch chạy tự động mỗi 5 phút.');
   } else {
-    Logger.log('ℹ️ Lịch chạy tự động mỗi 5 phút đã được bật từ trước.');
+    Logger.log('Lịch chạy tự động mỗi 5 phút đã được bật từ trước.');
   }
 
-  // Kiểm tra xem tài khoản đã được Quản trị viên cấp quyền đồng bộ Gmail chưa
   assertGmailSyncAllowed_(authInfo.idToken, authInfo.uid);
-  Logger.log('✅ Tài khoản đã được cấp quyền đồng bộ Gmail lên trang web!');
+  Logger.log('Tài khoản đã được cấp quyền đồng bộ Gmail.');
 
-  // Chạy thử đồng bộ ngay lần đầu với phiên đăng nhập sẵn
   runSyncWithToken_(authInfo);
 }
 
-/**
- * HÀM ĐỒNG BỘ CHÍNH (Chạy tự động mỗi 5 phút hoặc bấm Chạy thủ công)
- * Lưu ý: Google Apps Script sẽ tự truyền đối tượng sự kiện thời gian vào tham số
- * khi chạy trigger tự động, nên tuyệt đối không dùng tham số này làm Token Firebase.
- */
+// Bỏ qua tham số sự kiện Trigger khi chạy lịch tự động
 function syncGmailToGiaoVu() {
   return runSyncWithToken_(null);
 }
 
-/**
- * Thực thi quét nhãn VanBanDen và đẩy dữ liệu lên Firestore
- */
 function runSyncWithToken_(preloadedAuth) {
   const labelInbox = getOrCreateLabel_(CONFIG.LABEL_INBOX);
   const labelDone = getOrCreateLabel_(CONFIG.LABEL_DONE);
 
-  // Tìm các chuỗi email đang gắn nhãn VanBanDen
   const threads = GmailApp.search('label:' + CONFIG.LABEL_INBOX, 0, 20);
   if (!threads || threads.length === 0) {
-    Logger.log('Không có email mới nào trong nhãn "' + CONFIG.LABEL_INBOX + '".');
+    Logger.log('Không có email mới trong nhãn "' + CONFIG.LABEL_INBOX + '".');
     return;
   }
 
@@ -93,6 +60,7 @@ function runSyncWithToken_(preloadedAuth) {
     : signInFirebase_();
   const idToken = authInfo.idToken;
   assertGmailSyncAllowed_(idToken, authInfo.uid);
+
   const driveFolder = getOrCreateDriveFolder_(CONFIG.DRIVE_FOLDER_NAME);
   const props = PropertiesService.getScriptProperties();
   const syncedIds = JSON.parse(props.getProperty('SYNCED_MSG_IDS') || '[]');
@@ -117,14 +85,11 @@ function runSyncWithToken_(preloadedAuth) {
       if (typeof msg.isDraft === 'function' && msg.isDraft()) continue;
 
       const msgId = msg.getId();
-
-      // Bỏ qua thư đã đồng bộ trước đó
       if (syncedSet.has(msgId)) {
         threadProcessed++;
         continue;
       }
 
-      // Chỉ bỏ qua thư tự trả lời của chính mình nếu trong chuỗi thư có email từ người khác gửi đến
       if (hasExternalSender && myEmail && (msg.getFrom() || '').toLowerCase().includes(myEmail)) {
         syncedSet.add(msgId);
         threadProcessed++;
@@ -132,15 +97,13 @@ function runSyncWithToken_(preloadedAuth) {
       }
 
       const subject = (msg.getSubject() || 'Văn bản từ Gmail').trim();
-      const senderRaw = msg.getFrom() || 'Không rõ người gửi';
-      const sender = formatSender_(senderRaw);
+      const sender = formatSender_(msg.getFrom() || 'Không rõ người gửi');
       const msgDate = msg.getDate() || new Date();
       const dateStr = Utilities.formatDate(msgDate, 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd');
       const yearStr = Utilities.formatDate(msgDate, 'Asia/Ho_Chi_Minh', 'yyyy');
       const timeStr = Utilities.formatDate(msgDate, 'Asia/Ho_Chi_Minh', 'dd/MM/yyyy HH:mm');
       const refNo = extractRefNo_(subject, msgDate);
 
-      // Xử lý tệp đính kèm (bỏ qua ảnh chữ ký inline nhỏ)
       let attachments = [];
       try {
         attachments = msg.getAttachments({ includeInlineImages: false, includeAttachments: true });
@@ -161,7 +124,7 @@ function runSyncWithToken_(preloadedAuth) {
         try {
           driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
         } catch (shareErr) {
-          Logger.log('Không thể tự bật chia sẻ công khai cho tệp ' + fileName + ': ' + shareErr.message);
+          Logger.log('Không thể bật chia sẻ công khai cho tệp ' + fileName + ': ' + shareErr.message);
         }
         const viewUrl = 'https://drive.google.com/file/d/' + driveFile.getId() + '/view?usp=sharing';
 
@@ -185,7 +148,7 @@ function runSyncWithToken_(preloadedAuth) {
       }
 
       const now = new Date();
-      const docPayload = {
+      writeFirestoreDoc_('docs_incoming', {
         refNo: refNo,
         date: dateStr,
         year: yearStr,
@@ -202,11 +165,8 @@ function runSyncWithToken_(preloadedAuth) {
         source: 'gmail',
         createdAt: now,
         updatedAt: now,
-      };
+      }, idToken);
 
-      writeFirestoreDoc_('docs_incoming', docPayload, idToken);
-
-      // Ghi nhật ký Audit Log trên hệ thống
       try {
         writeFirestoreDoc_('audit_logs', {
           action: 'add',
@@ -223,34 +183,23 @@ function runSyncWithToken_(preloadedAuth) {
       syncedSet.add(msgId);
       threadProcessed++;
       countSynced++;
-
-      // Lưu ngay sau mỗi văn bản ghi thành công để tránh trùng lặp nếu thư sau lỗi
       props.setProperty('SYNCED_MSG_IDS', JSON.stringify(Array.from(syncedSet).slice(-300)));
     }
 
-    // Chuyển nhãn từ VanBanDen -> DaDongBo sau khi đã xử lý xong chuỗi thư
     if (threadProcessed > 0) {
       thread.removeLabel(labelInbox);
       thread.addLabel(labelDone);
     }
   }
 
-  // Giữ lại tối đa 300 ID gần nhất để tránh tràn bộ nhớ Properties
-  const updatedIds = Array.from(syncedSet).slice(-300);
-  props.setProperty('SYNCED_MSG_IDS', JSON.stringify(updatedIds));
-
-  Logger.log('✅ Đã đồng bộ thành công ' + countSynced + ' văn bản mới từ Gmail lên trang web!');
+  props.setProperty('SYNCED_MSG_IDS', JSON.stringify(Array.from(syncedSet).slice(-300)));
+  Logger.log('Đã đồng bộ thành công ' + countSynced + ' văn bản mới.');
 }
 
-/**
- * Hàm phụ trợ (chỉ chạy thủ công khi cần test lại một email cũ đã đồng bộ trước đó)
- */
 function datLaiBoNhoDongBo() {
   PropertiesService.getScriptProperties().deleteProperty('SYNCED_MSG_IDS');
-  Logger.log('Đã xóa danh sách ID email đã đồng bộ (SYNCED_MSG_IDS).');
+  Logger.log('Đã xóa danh sách ID email đã đồng bộ.');
 }
-
-// ==================== CÁC HÀM HỖ TRỢ NỘI BỘ ====================
 
 function signInFirebase_() {
   const url = 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + CONFIG.FIREBASE_API_KEY;
@@ -268,7 +217,7 @@ function signInFirebase_() {
   const code = res.getResponseCode();
   const data = JSON.parse(res.getContentText() || '{}');
   if (code < 200 || code >= 300 || !data.idToken) {
-    throw new Error('Không thể đăng nhập tài khoản Firebase (' + (data.error ? data.error.message : code) + '). Vui lòng kiểm tra lại FIREBASE_EMAIL và FIREBASE_PASSWORD!');
+    throw new Error('Không thể đăng nhập Firebase (' + (data.error ? data.error.message : code) + '). Kiểm tra lại FIREBASE_EMAIL và FIREBASE_PASSWORD.');
   }
   return { idToken: data.idToken, uid: data.localId };
 }
@@ -288,10 +237,10 @@ function assertGmailSyncAllowed_(idToken, uid) {
 
   const code = res.getResponseCode();
   if (code === 404) {
-    throw new Error('Tài khoản chưa kích hoạt hồ sơ trên trang web. Hãy đăng nhập vào trang web ít nhất 1 lần rồi nhờ Quản trị viên cấp quyền đồng bộ Gmail!');
+    throw new Error('Tài khoản chưa có hồ sơ trên trang web. Hãy đăng nhập web 1 lần rồi nhờ Quản trị viên cấp quyền đồng bộ Gmail.');
   }
   if (code < 200 || code >= 300) {
-    throw new Error('Không thể kiểm tra quyền đồng bộ tài khoản (' + code + ').');
+    throw new Error('Không thể kiểm tra quyền đồng bộ (' + code + ').');
   }
 
   const docData = JSON.parse(res.getContentText() || '{}');
@@ -306,7 +255,7 @@ function assertGmailSyncAllowed_(idToken, uid) {
 
   const isAdmin = role === 'Quản trị viên' || role === 'admin';
   if (!isAdmin && !canSyncGmail) {
-    throw new Error('Tài khoản "' + CONFIG.FIREBASE_EMAIL + '" chưa được Quản trị viên cấp quyền đồng bộ Gmail. Vui lòng nhờ Admin bật quyền trong mục Quản lý Người dùng!');
+    throw new Error('Tài khoản "' + CONFIG.FIREBASE_EMAIL + '" chưa được Quản trị viên cấp quyền đồng bộ Gmail.');
   }
 }
 
@@ -380,7 +329,6 @@ function formatSender_(fromHeader) {
 }
 
 function extractRefNo_(subject, dateObj) {
-  // Nếu tiêu đề email có chứa số ký hiệu văn bản (VD: 125/CV-BGDDT, 45/QD-EPU)
   const match = subject.match(/\b\d{1,4}\/[A-Za-zÀ-ỹ0-9._-]+\b/);
   if (match) return match[0];
   return 'GM-' + Utilities.formatDate(dateObj, 'Asia/Ho_Chi_Minh', 'ddMM-HHmm');

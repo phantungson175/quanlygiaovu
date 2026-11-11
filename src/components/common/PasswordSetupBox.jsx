@@ -59,7 +59,7 @@ const PasswordSetupBox = ({ hasPassword, hasGoogle, onSuccess }) => {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
         <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--primary)' }}>
-          🔐 {hasPassword ? 'Đổi mật khẩu đăng nhập / đồng bộ Gmail' : 'Tạo mật khẩu cho tài khoản Google'}
+          {hasPassword ? 'Đổi mật khẩu đăng nhập / đồng bộ Gmail' : 'Tạo mật khẩu cho tài khoản Google'}
         </div>
         <span className={`badge ${hasPassword ? 'badge-success' : 'badge-warning'}`}>
           {hasPassword ? 'Đã có mật khẩu' : 'Chưa đặt mật khẩu'}

@@ -213,7 +213,7 @@ const LoginPage = () => {
                 onChange={e => set('password', e.target.value)}
                 required
                 minLength={6}
-                style={{ paddingRight: 40 }}
+                style={{ paddingRight: 48 }}
               />
               <button
                 type="button"
@@ -226,7 +226,8 @@ const LoginPage = () => {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  fontSize: 16,
+                  fontSize: 12,
+                  fontWeight: 600,
                   padding: 2,
                   color: 'var(--text-muted)',
                   display: 'flex',
@@ -234,7 +235,7 @@ const LoginPage = () => {
                 }}
                 title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
               >
-                {showPassword ? '👁️' : '🙈'}
+                {showPassword ? 'Ẩn' : 'Hiện'}
               </button>
             </div>
           </div>
@@ -285,7 +286,7 @@ const LoginPage = () => {
       <Modal
         open={forgotModalOpen}
         onClose={() => !sendingReset && setForgotModalOpen(false)}
-        title="🔑 Khôi phục mật khẩu"
+        title="Khôi phục mật khẩu"
         size="modal-sm"
         closeOnBackdrop={!sendingReset}
       >
@@ -316,7 +317,7 @@ const LoginPage = () => {
                 handleGoogle();
               }}
             >
-              Đăng nhập bằng Google để tạo mật khẩu trong Hồ sơ →
+              Đăng nhập bằng Google để tạo mật khẩu trong Hồ sơ
             </button>
           </div>
           <div className="form-group" style={{ marginBottom: 16 }}>

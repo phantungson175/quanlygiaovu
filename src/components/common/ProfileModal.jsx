@@ -205,7 +205,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
         }}>
           <div style={{ fontSize: 13 }}>
             <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: 2 }}>
-              📧 Đồng bộ Văn bản Đến từ Gmail
+              Đồng bộ Văn bản Đến từ Gmail
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               Trạng thái:{' '}
@@ -223,7 +223,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
             onClick={() => setGmailModalOpen(true)}
             style={{ fontWeight: 600 }}
           >
-            {canSyncGmail ? '⚙️ Thiết lập đồng bộ Gmail' : 'ℹ️ Xem chi tiết'}
+            {canSyncGmail ? 'Thiết lập đồng bộ Gmail' : 'Xem chi tiết'}
           </button>
         </div>
       </div>

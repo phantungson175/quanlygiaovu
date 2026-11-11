@@ -63,7 +63,7 @@ const GmailSyncModal = ({ isOpen, onClose }) => {
     <Modal
       open={isOpen}
       onClose={handleClose}
-      title="📧 Thiết lập Tự động Đồng bộ Văn bản từ Gmail"
+      title="Thiết lập đồng bộ văn bản từ Gmail"
       size="modal-lg"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -77,13 +77,13 @@ const GmailSyncModal = ({ isOpen, onClose }) => {
             lineHeight: 1.6,
           }}>
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>
-              🔒 Tài khoản chưa được cấp quyền đồng bộ Gmail
+              Tài khoản chưa được cấp quyền đồng bộ Gmail
             </div>
             <p style={{ margin: '0 0 8px', fontSize: 13.5 }}>
               Tài khoản <strong>{user?.email}</strong> hiện chưa được Quản trị viên bật quyền đồng bộ văn bản từ Gmail lên hệ thống.
             </p>
             <p style={{ margin: 0, fontSize: 13, color: '#7f1d1d' }}>
-              Vui lòng liên hệ Quản trị viên (Admin) vào mục <strong>Quản lý Người dùng</strong> để bật nút <strong>Cấp quyền Gmail</strong> cho tài khoản của bạn, sau đó mở lại cửa sổ này.
+              Vui lòng liên hệ Quản trị viên (Admin) vào mục <strong>Quản lý Người dùng</strong> để bật nút <strong>Cấp Gmail</strong> cho tài khoản của bạn, sau đó mở lại cửa sổ này.
             </p>
           </div>
         ) : (
@@ -103,7 +103,7 @@ const GmailSyncModal = ({ isOpen, onClose }) => {
               color: '#166534',
             }}>
               <span>
-                ✅ Tài khoản <strong>{user?.email}</strong> đã được cấp quyền đồng bộ Gmail lên mục <strong>Văn bản Đến</strong>.
+                Tài khoản <strong>{user?.email}</strong> đã được cấp quyền đồng bộ Gmail lên mục <strong>Văn bản Đến</strong>.
               </span>
               <span className="badge badge-success">Đã cấp quyền</span>
             </div>
@@ -193,14 +193,14 @@ const GmailSyncModal = ({ isOpen, onClose }) => {
                     rel="noopener noreferrer"
                     className="btn btn-outline btn-sm"
                   >
-                    Mở script.google.com ↗
+                    Mở script.google.com
                   </a>
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
                     onClick={handleCopyScript}
                   >
-                    {copied ? '✅ Đã sao chép!' : '📋 Sao chép toàn bộ mã'}
+                    {copied ? 'Đã sao chép' : 'Sao chép toàn bộ mã'}
                   </button>
                 </div>
               </div>
