@@ -433,16 +433,14 @@ const DocumentsPage = () => {
         )}
 
 
-        {tab === 'incoming' && (
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setGmailModalOpen(true)}
-            title={canSyncGmail ? 'Thiết lập tự động đồng bộ từ Gmail' : 'Xem thông tin cấp quyền đồng bộ Gmail'}
-          >
-            Đồng bộ Gmail
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() => setGmailModalOpen(true)}
+          title={canSyncGmail ? 'Thiết lập đồng bộ Văn bản Đến & Đi từ Gmail' : 'Xem thông tin cấp quyền đồng bộ Gmail'}
+        >
+          Đồng bộ Gmail
+        </button>
 
         <button className="btn btn-primary" onClick={openModal}>
           + Thêm {tab === 'incoming' ? 'Văn bản Đến' : 'Văn bản Đi'}

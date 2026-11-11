@@ -1,10 +1,11 @@
-// Đồng bộ văn bản đến từ Gmail lên Hệ thống Quản lý Giáo vụ
+// Đồng bộ văn bản đến & văn bản đi từ Gmail lên Hệ thống Quản lý Giáo vụ
 const CONFIG = {
   FIREBASE_EMAIL: 'DIEN_EMAIL_TAI_KHOAN_WEB_CUA_BAN@gmail.com',
   FIREBASE_PASSWORD: 'DIEN_MAT_KHAU_TAI_KHOAN_WEB',
   FIREBASE_PROJECT_ID: 'qlgiaovu',
   FIREBASE_API_KEY: 'AIzaSyCdk0k-bVwRRIgT5G1_wV8EfOufY5v4qYU',
   LABEL_INBOX: 'VanBanDen',
+  LABEL_OUTBOX: 'VanBanDi',
   LABEL_DONE: 'DaDongBo',
   DRIVE_FOLDER_NAME: 'QuanLyGiaoVu_VanBanDen',
 };
@@ -16,6 +17,7 @@ function caiDatTuDong() {
   }
 
   getOrCreateLabel_(CONFIG.LABEL_INBOX);
+  getOrCreateLabel_(CONFIG.LABEL_OUTBOX);
   getOrCreateLabel_(CONFIG.LABEL_DONE);
   getOrCreateDriveFolder_(CONFIG.DRIVE_FOLDER_NAME);
 
@@ -46,58 +48,105 @@ function syncGmailToGiaoVu() {
 }
 
 function runSyncWithToken_(preloadedAuth) {
-  const labelInbox = getOrCreateLabel_(CONFIG.LABEL_INBOX);
   const labelDone = getOrCreateLabel_(CONFIG.LABEL_DONE);
-
-  const threads = GmailApp.search('label:' + CONFIG.LABEL_INBOX, 0, 20);
-  if (!threads || threads.length === 0) {
-    Logger.log('Không có email mới trong nhãn "' + CONFIG.LABEL_INBOX + '".');
-    return;
-  }
-
-  const authInfo = (preloadedAuth && typeof preloadedAuth.idToken === 'string' && preloadedAuth.idToken.length > 20)
-    ? preloadedAuth
-    : signInFirebase_();
-  const idToken = authInfo.idToken;
-  assertGmailSyncAllowed_(idToken, authInfo.uid);
-
-  const driveFolder = getOrCreateDriveFolder_(CONFIG.DRIVE_FOLDER_NAME);
   const props = PropertiesService.getScriptProperties();
   const syncedIds = JSON.parse(props.getProperty('SYNCED_MSG_IDS') || '[]');
   const syncedSet = new Set(syncedIds);
   const myEmail = (Session.getActiveUser().getEmail() || '').trim().toLowerCase();
 
+  let sessionCtx = null;
+  const ensureSession = function () {
+    if (sessionCtx) return sessionCtx;
+    const authInfo = (preloadedAuth && typeof preloadedAuth.idToken === 'string' && preloadedAuth.idToken.length > 20)
+      ? preloadedAuth
+      : signInFirebase_();
+    assertGmailSyncAllowed_(authInfo.idToken, authInfo.uid);
+    sessionCtx = {
+      idToken: authInfo.idToken,
+      driveFolder: getOrCreateDriveFolder_(CONFIG.DRIVE_FOLDER_NAME),
+    };
+    return sessionCtx;
+  };
+
+  const totalIn = syncByLabel_({
+    labelName: CONFIG.LABEL_INBOX,
+    collectionName: 'docs_incoming',
+    moduleName: 'Văn bản đến',
+    defaultStatus: 'Chưa xử lý',
+    isOutgoing: false,
+  }, { labelDone, props, syncedSet, myEmail, ensureSession });
+
+  const totalOut = syncByLabel_({
+    labelName: CONFIG.LABEL_OUTBOX,
+    collectionName: 'docs_outgoing',
+    moduleName: 'Văn bản đi',
+    defaultStatus: 'Đã gửi',
+    isOutgoing: true,
+  }, { labelDone, props, syncedSet, myEmail, ensureSession });
+
+  props.setProperty('SYNCED_MSG_IDS', JSON.stringify(Array.from(syncedSet).slice(-300)));
+  Logger.log('Đã đồng bộ thành công ' + totalIn + ' văn bản đến và ' + totalOut + ' văn bản đi.');
+}
+
+function syncByLabel_(cfg, ctx) {
+  const labelSource = getOrCreateLabel_(cfg.labelName);
+  const threads = GmailApp.search('label:' + cfg.labelName, 0, 20);
+  if (!threads || threads.length === 0) {
+    Logger.log('Không có email mới trong nhãn "' + cfg.labelName + '".');
+    return 0;
+  }
+
+  const session = ctx.ensureSession();
+  const idToken = session.idToken;
+  const driveFolder = session.driveFolder;
+  const myEmail = ctx.myEmail;
   let countSynced = 0;
 
   for (let tIdx = 0; tIdx < threads.length; tIdx++) {
     const thread = threads[tIdx];
     const messages = thread.getMessages();
+    const nonDrafts = messages.filter(function (m) {
+      return !(typeof m.isDraft === 'function' && m.isDraft());
+    });
     const hasExternalSender = myEmail
-      ? messages.some(function (m) {
+      ? nonDrafts.some(function (m) {
           const from = (m.getFrom() || '').toLowerCase();
           return from && !from.includes(myEmail);
         })
       : false;
+    const hasMySentMessage = myEmail
+      ? nonDrafts.some(function (m) {
+          return (m.getFrom() || '').toLowerCase().includes(myEmail);
+        })
+      : false;
+
     let threadProcessed = 0;
 
-    for (let mIdx = 0; mIdx < messages.length; mIdx++) {
-      const msg = messages[mIdx];
-      if (typeof msg.isDraft === 'function' && msg.isDraft()) continue;
-
+    for (let mIdx = 0; mIdx < nonDrafts.length; mIdx++) {
+      const msg = nonDrafts[mIdx];
       const msgId = msg.getId();
-      if (syncedSet.has(msgId)) {
+      const syncKey = (cfg.isOutgoing ? 'out:' : 'in:') + msgId;
+
+      if (ctx.syncedSet.has(syncKey) || (!cfg.isOutgoing && ctx.syncedSet.has(msgId))) {
         threadProcessed++;
         continue;
       }
 
-      if (hasExternalSender && myEmail && (msg.getFrom() || '').toLowerCase().includes(myEmail)) {
-        syncedSet.add(msgId);
+      const fromLower = (msg.getFrom() || '').toLowerCase();
+      const isMine = Boolean(myEmail && fromLower.includes(myEmail));
+
+      if (!cfg.isOutgoing && hasExternalSender && isMine) {
+        ctx.syncedSet.add(syncKey);
+        threadProcessed++;
+        continue;
+      }
+      if (cfg.isOutgoing && hasMySentMessage && !isMine) {
+        ctx.syncedSet.add(syncKey);
         threadProcessed++;
         continue;
       }
 
-      const subject = (msg.getSubject() || 'Văn bản từ Gmail').trim();
-      const sender = formatSender_(msg.getFrom() || 'Không rõ người gửi');
+      const subject = (msg.getSubject() || (cfg.isOutgoing ? 'Văn bản đi từ Gmail' : 'Văn bản từ Gmail')).trim();
       const msgDate = msg.getDate() || new Date();
       const dateStr = Utilities.formatDate(msgDate, 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd');
       const yearStr = Utilities.formatDate(msgDate, 'Asia/Ho_Chi_Minh', 'yyyy');
@@ -148,29 +197,35 @@ function runSyncWithToken_(preloadedAuth) {
       }
 
       const now = new Date();
-      writeFirestoreDoc_('docs_incoming', {
+      const docPayload = {
         refNo: refNo,
         date: dateStr,
         year: yearStr,
-        sender: sender,
         summary: subject,
         assignee: '',
         deadline: '',
         notes: notes,
         fileUrl: primaryFileUrl,
         fileName: primaryFileName,
-        status: 'Chưa xử lý',
+        status: cfg.defaultStatus,
         folderId: null,
         folderName: '',
         source: 'gmail',
         createdAt: now,
         updatedAt: now,
-      }, idToken);
+      };
+      if (cfg.isOutgoing) {
+        docPayload.recipient = formatAddresses_(msg.getTo() || msg.getCc() || 'Không rõ nơi nhận');
+      } else {
+        docPayload.sender = formatAddresses_(msg.getFrom() || 'Không rõ người gửi');
+      }
+
+      writeFirestoreDoc_(cfg.collectionName, docPayload, idToken);
 
       try {
         writeFirestoreDoc_('audit_logs', {
           action: 'add',
-          module: 'Văn bản đến',
+          module: cfg.moduleName,
           detail: 'Tự động đồng bộ Gmail: ' + refNo + ' - ' + subject,
           userEmail: CONFIG.FIREBASE_EMAIL,
           userName: 'Đồng bộ Gmail tự động',
@@ -180,20 +235,19 @@ function runSyncWithToken_(preloadedAuth) {
         Logger.log('Cảnh báo ghi audit log: ' + logErr.message);
       }
 
-      syncedSet.add(msgId);
+      ctx.syncedSet.add(syncKey);
       threadProcessed++;
       countSynced++;
-      props.setProperty('SYNCED_MSG_IDS', JSON.stringify(Array.from(syncedSet).slice(-300)));
+      ctx.props.setProperty('SYNCED_MSG_IDS', JSON.stringify(Array.from(ctx.syncedSet).slice(-300)));
     }
 
     if (threadProcessed > 0) {
-      thread.removeLabel(labelInbox);
-      thread.addLabel(labelDone);
+      thread.removeLabel(labelSource);
+      thread.addLabel(ctx.labelDone);
     }
   }
 
-  props.setProperty('SYNCED_MSG_IDS', JSON.stringify(Array.from(syncedSet).slice(-300)));
-  Logger.log('Đã đồng bộ thành công ' + countSynced + ' văn bản mới.');
+  return countSynced;
 }
 
 function datLaiBoNhoDongBo() {
@@ -318,14 +372,21 @@ function getOrCreateDriveFolder_(folderName) {
   return DriveApp.createFolder(folderName);
 }
 
-function formatSender_(fromHeader) {
-  const match = fromHeader.match(/^"?([^"<]+)"?\s*<([^>]+)>$/);
-  if (match) {
-    const name = match[1].trim();
-    const email = match[2].trim();
-    return name ? name + ' (' + email + ')' : email;
-  }
-  return fromHeader.replace(/[<>"]/g, '').trim();
+function formatAddresses_(headerVal) {
+  const parts = String(headerVal || '').match(/(?:[^,"]|"[^"]*")+/g) || [];
+  return parts
+    .map(function (part) {
+      const s = part.trim();
+      const match = s.match(/^"?([^"<]+)"?\s*<([^>]+)>$/);
+      if (match) {
+        const name = match[1].trim();
+        const email = match[2].trim();
+        return name ? name + ' (' + email + ')' : email;
+      }
+      return s.replace(/[<>"]/g, '').trim();
+    })
+    .filter(Boolean)
+    .join(', ');
 }
 
 function extractRefNo_(subject, dateObj) {

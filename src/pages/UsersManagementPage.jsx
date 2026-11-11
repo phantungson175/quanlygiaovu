@@ -152,7 +152,7 @@ const UsersManagementPage = () => {
       title: enabled ? 'Thu hồi quyền đồng bộ Gmail' : 'Cấp quyền đồng bộ Gmail',
       message: enabled
         ? `Thu hồi quyền gắn nhãn đồng bộ Gmail của "${targetUser.displayName || targetUser.email}"? Tài khoản này sẽ không thể đẩy văn bản mới từ Gmail lên web nữa.`
-        : `Cấp quyền cho "${targetUser.displayName || targetUser.email}" tự cấu hình gắn nhãn Gmail đẩy văn bản đến lên trang web?`,
+        : `Cấp quyền cho "${targetUser.displayName || targetUser.email}" tự cấu hình gắn nhãn Gmail đẩy văn bản đến/đi lên trang web?`,
       confirmText: enabled ? 'Thu hồi quyền' : 'Cấp quyền',
       cancelText: 'Huỷ bỏ',
       type: enabled ? 'warning' : 'info',
@@ -518,7 +518,7 @@ const UsersManagementPage = () => {
                   disabled={editForm.role === 'Quản trị viên' || savingEdit}
                 />
                 <span>
-                  <strong>Cho phép đồng bộ Văn bản Đến từ Gmail</strong>
+                  <strong>Cho phép đồng bộ Văn bản Đến & Đi từ Gmail</strong>
                   {editForm.role === 'Quản trị viên' && (
                     <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--text-muted)' }}>(Admin mặc định được phép)</span>
                   )}

@@ -205,7 +205,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
         }}>
           <div style={{ fontSize: 13 }}>
             <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: 2 }}>
-              Đồng bộ Văn bản Đến từ Gmail
+              Đồng bộ Văn bản Đến & Đi từ Gmail
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               Trạng thái:{' '}

@@ -21,8 +21,15 @@ service cloud.firestore {
       return isAdmin() || (hasUserDoc() && userDoc().get('canSyncGmail', false) == true);
     }
 
-    // Văn bản đến: chỉ tài khoản được Admin cấp quyền (hoặc Admin) mới được ghi bản ghi đồng bộ từ Gmail
+    // Văn bản đến và đi: chỉ tài khoản được Admin cấp quyền (hoặc Admin) mới được ghi bản ghi đồng bộ từ Gmail
     match /docs_incoming/{docId} {
+      allow read, update, delete: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.resource.data.get('source', '') != 'gmail' || canSyncGmail()
+      );
+    }
+
+    match /docs_outgoing/{docId} {
       allow read, update, delete: if isSignedIn();
       allow create: if isSignedIn() && (
         request.resource.data.get('source', '') != 'gmail' || canSyncGmail()
@@ -31,7 +38,7 @@ service cloud.firestore {
 
     // Cho phép tài khoản đã đăng nhập đọc và ghi các phân hệ khác
     match /{col}/{docId=**} {
-      allow read, write: if isSignedIn() && col != 'docs_incoming';
+      allow read, write: if isSignedIn() && col != 'docs_incoming' && col != 'docs_outgoing';
     }
   }
 }

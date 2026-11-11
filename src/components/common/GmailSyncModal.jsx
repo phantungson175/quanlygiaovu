@@ -103,7 +103,7 @@ const GmailSyncModal = ({ isOpen, onClose }) => {
               color: '#166534',
             }}>
               <span>
-                Tài khoản <strong>{user?.email}</strong> đã được cấp quyền đồng bộ Gmail lên mục <strong>Văn bản Đến</strong>.
+                Tài khoản <strong>{user?.email}</strong> đã được cấp quyền đồng bộ Gmail lên mục <strong>Văn bản Đến</strong> và <strong>Văn bản Đi</strong>.
               </span>
               <span className="badge badge-success">Đã cấp quyền</span>
             </div>
@@ -238,7 +238,7 @@ const GmailSyncModal = ({ isOpen, onClose }) => {
                 <li>Mở <strong>script.google.com</strong> (đăng nhập bằng Gmail nhận công văn của bạn) → bấm <strong>+ Dự án mới</strong>.</li>
                 <li>Xóa code mẫu sẵn có, dán đoạn mã vừa sao chép vào và bấm <strong>Lưu (Ctrl + S)</strong>.</li>
                 <li>Ở thanh công cụ phía trên, chọn hàm <strong>caiDatTuDong</strong> → bấm <strong>Chạy (Run)</strong> và bấm cho phép quyền Gmail/Drive 1 lần.</li>
-                <li>Từ đó về sau, mỗi khi bạn gắn nhãn <strong>VanBanDen</strong> cho email (hoặc cài Bộ lọc Gmail tự gắn nhãn), hệ thống tự đẩy văn bản và tệp đính kèm lên trang web sau mỗi 5 phút!</li>
+                <li>Từ đó về sau, gắn nhãn <strong>VanBanDen</strong> để đưa vào <strong>Văn bản Đến</strong> hoặc gắn nhãn <strong>VanBanDi</strong> (trong mục Đã gửi) để đưa vào <strong>Văn bản Đi</strong> — hệ thống tự đồng bộ sau mỗi 5 phút.</li>
               </ol>
             </div>
           </>
