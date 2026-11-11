@@ -1,18 +1,123 @@
 // src/components/common/DocumentPreviewModal.jsx
 // Modal xem trực tiếp tài liệu thông minh (PDF, Hình ảnh Scan, Google Drive Embed, Văn phòng Office...)
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { resolveFileForPreview, downloadFileSafely } from '../../services/storageHelper';
 import { formatFileSize, getFileType } from '../../utils/fileUtils';
+import { parseExcelPreview, parseDocxPreview } from '../../utils/officePreview';
 import toast from 'react-hot-toast';
+
+const renderDocxRuns = (runs = []) => {
+  return runs.map((run, idx) => {
+    if (run.kind === 'br') return <br key={idx} />;
+    if (run.kind === 'img') {
+      return (
+        <img
+          key={idx}
+          src={run.src}
+          alt="Minh họa văn bản"
+          style={{ maxWidth: '100%', height: 'auto', display: 'inline-block', margin: '4px 0' }}
+        />
+      );
+    }
+    const s = run.style || {};
+    const textStyle = {
+      fontWeight: s.bold ? 700 : undefined,
+      fontStyle: s.italic ? 'italic' : undefined,
+      textDecoration: [s.underline ? 'underline' : '', s.strike ? 'line-through' : ''].filter(Boolean).join(' ') || undefined,
+      color: s.color || undefined,
+      fontSize: s.fontSize ? `${s.fontSize}pt` : undefined,
+    };
+    if (run.linkHref) {
+      return (
+        <a key={idx} href={run.linkHref} target="_blank" rel="noreferrer" style={{ ...textStyle, color: '#1d4ed8', textDecoration: 'underline' }}>
+          {run.text}
+        </a>
+      );
+    }
+    return <span key={idx} style={textStyle}>{run.text}</span>;
+  });
+};
+
+const renderDocxBlocks = (blocks = [], inTable = false) => {
+  return blocks.map((block, bIdx) => {
+    if (block.type === 'table') {
+      return (
+        <div key={bIdx} style={{ overflowX: 'auto', margin: '10px 0' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #94a3b8' }}>
+            <tbody>
+              {block.rows.map((row, rIdx) => (
+                <tr key={rIdx}>
+                  {row.map((cell, cIdx) => (
+                    <td
+                      key={cIdx}
+                      colSpan={cell.colSpan > 1 ? cell.colSpan : undefined}
+                      style={{
+                        border: '1px solid #94a3b8',
+                        padding: '6px 8px',
+                        verticalAlign: 'top',
+                        backgroundColor: cell.bgColor || undefined,
+                      }}
+                    >
+                      {renderDocxBlocks(cell.blocks, true)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    const isEmpty = !block.runs || block.runs.length === 0 || block.runs.every(r => r.kind === 'text' && !r.text);
+    if (isEmpty) {
+      return <div key={bIdx} style={{ height: inTable ? '0.4em' : '0.8em' }} />;
+    }
+
+    const headingStyles = {
+      title: { fontSize: '20pt', fontWeight: 700, margin: '10px 0 8px' },
+      subtitle: { fontSize: '14pt', fontStyle: 'italic', color: '#475569', margin: '4px 0 10px' },
+      h1: { fontSize: '16pt', fontWeight: 700, margin: '12px 0 6px', color: '#0f172a' },
+      h2: { fontSize: '14pt', fontWeight: 700, margin: '10px 0 5px', color: '#1e293b' },
+      h3: { fontSize: '13pt', fontWeight: 700, margin: '8px 0 4px', color: '#334155' },
+    };
+
+    const pStyle = {
+      textAlign: block.align || 'left',
+      margin: inTable ? '2px 0' : '4px 0',
+      lineHeight: 1.55,
+      paddingLeft: block.isList ? '20px' : undefined,
+      position: block.isList ? 'relative' : undefined,
+      ...(block.heading ? headingStyles[block.heading] : {}),
+    };
+
+    return (
+      <div key={bIdx} style={pStyle}>
+        {block.isList && (
+          <span style={{ position: 'absolute', left: '6px', fontWeight: 700 }}>•</span>
+        )}
+        {renderDocxRuns(block.runs)}
+      </div>
+    );
+  });
+};
 
 const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
   const [loading, setLoading] = useState(true);
   const [resolved, setResolved] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
+  // Dữ liệu xem trước Word (.docx) & Excel (.xlsx, .xls, .csv)
+  const [docxData, setDocxData] = useState(null);
+  const [excelData, setExcelData] = useState(null);
+  const [activeSheetIdx, setActiveSheetIdx] = useState(0);
+  const previewContentRef = useRef(null);
+
   // Trạng thái cho ảnh (Phóng to / Thu nhỏ / Xoay)
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+
+  const fileType = getFileType(fileName, url);
 
   useEffect(() => {
     let currentBlobUrl = null;
@@ -21,6 +126,9 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
       if (!isOpen || !url) return;
       setLoading(true);
       setErrorMsg(null);
+      setDocxData(null);
+      setExcelData(null);
+      setActiveSheetIdx(0);
       setZoom(1);
       setRotation(0);
 
@@ -34,6 +142,29 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
           setResolved(res);
           if (res.isBlob) {
             currentBlobUrl = res.previewUrl;
+          }
+
+          // Nếu là Excel hoặc Word tải từ máy tính / đám mây -> dựng xem trước trực tiếp
+          const lowerName = (fileName || '').toLowerCase();
+          if (fileType === 'excel' && !res.isGoogleDrive) {
+            try {
+              const sourceBlob = res.file || res.blob || await (await fetch(res.previewUrl)).blob();
+              const buf = await sourceBlob.arrayBuffer();
+              setExcelData(parseExcelPreview(buf));
+            } catch (e) {
+              console.warn('Không thể đọc xem trước Excel:', e);
+            }
+          } else if (fileType === 'word' && !res.isGoogleDrive && lowerName.endsWith('.docx')) {
+            try {
+              const sourceBlob = res.file || res.blob || await (await fetch(res.previewUrl)).blob();
+              const buf = await sourceBlob.arrayBuffer();
+              const parsed = parseDocxPreview(buf);
+              if (parsed?.supported) {
+                setDocxData(parsed);
+              }
+            } catch (e) {
+              console.warn('Không thể đọc xem trước Word:', e);
+            }
           }
         }
       } catch (err) {
@@ -51,11 +182,10 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [isOpen, url, fileName]);
+  }, [isOpen, url, fileName, fileType]);
 
   if (!isOpen) return null;
 
-  const fileType = getFileType(fileName, url);
   const ext = fileType === 'gdrive' ? 'G-DRIVE' : (fileName?.split('.').pop()?.toUpperCase() || 'FILE');
 
   const handleDownload = async () => {
@@ -65,7 +195,40 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
     }
   };
 
+  const openRenderedHtmlWindow = (autoPrint = false) => {
+    if (!previewContentRef.current) return false;
+    const htmlContent = previewContentRef.current.innerHTML;
+    const safeTitle = String(fileName || 'Xem tài liệu').replace(/[<>&"]/g, '');
+    const win = window.open('', '_blank');
+    if (!win) return false;
+    win.document.write(`<!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${safeTitle}</title>
+        <style>
+          body { font-family: "Times New Roman", "Segoe UI", Arial, sans-serif; color: #0f172a; margin: 20px; background: #fff; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #94a3b8; padding: 6px 8px; }
+          @media print { @page { size: A4; margin: 15mm; } body { margin: 0; } }
+        </style>
+      </head>
+      <body>${htmlContent}</body>
+      </html>`);
+    win.document.close();
+    win.focus();
+    if (autoPrint) {
+      setTimeout(() => {
+        try { win.print(); } catch {}
+      }, 300);
+    }
+    return true;
+  };
+
   const handleOpenNewTab = () => {
+    if ((docxData || excelData) && openRenderedHtmlWindow(false)) {
+      return;
+    }
     if (resolved?.previewUrl) {
       window.open(resolved.previewUrl, '_blank');
     } else {
@@ -74,6 +237,9 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
   };
 
   const handlePrint = () => {
+    if ((docxData || excelData) && openRenderedHtmlWindow(true)) {
+      return;
+    }
     if (resolved?.previewUrl) {
       const printWindow = window.open(resolved.previewUrl, '_blank');
       printWindow?.focus();
@@ -282,10 +448,10 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
           style={{
             flex: 1,
             position: 'relative',
-            background: fileType === 'img' ? '#334155' : '#f1f5f9',
+            background: fileType === 'img' ? '#334155' : (docxData || excelData) ? '#e2e8f0' : '#f1f5f9',
             overflow: 'auto',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: (!loading && !errorMsg && (docxData || excelData)) ? 'flex-start' : 'center',
             justifyContent: 'center',
           }}
         >
@@ -389,8 +555,127 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
                 }}
               />
             </div>
+          ) : (fileType === 'word' && docxData?.supported) ? (
+            /* TRÌNH XEM TRỰC TIẾP VĂN BẢN WORD (.DOCX) */
+            <div style={{ width: '100%', padding: '24px 16px', display: 'flex', justifyContent: 'center' }}>
+              <div
+                ref={previewContentRef}
+                style={{
+                  width: '100%',
+                  maxWidth: '820px',
+                  minHeight: '72vh',
+                  background: '#ffffff',
+                  padding: '40px 48px',
+                  borderRadius: '6px',
+                  boxShadow: '0 6px 24px rgba(15, 23, 42, 0.12)',
+                  fontFamily: "'Times New Roman', 'Segoe UI', Arial, sans-serif",
+                  fontSize: '12.5pt',
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {renderDocxBlocks(docxData.blocks)}
+              </div>
+            </div>
+          ) : (fileType === 'excel' && excelData?.sheets?.length > 0) ? (
+            /* TRÌNH XEM TRỰC TIẾP BẢNG TÍNH EXCEL (.XLSX / .XLS) */
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#ffffff' }}>
+              {excelData.sheets.length > 1 && (
+                <div style={{
+                  display: 'flex',
+                  gap: 4,
+                  padding: '8px 16px',
+                  background: '#f8fafc',
+                  borderBottom: '1px solid #cbd5e1',
+                  overflowX: 'auto',
+                }}>
+                  {excelData.sheets.map((s, idx) => (
+                    <button
+                      key={s.name}
+                      type="button"
+                      onClick={() => setActiveSheetIdx(idx)}
+                      style={{
+                        padding: '5px 12px',
+                        fontSize: 12.5,
+                        fontWeight: activeSheetIdx === idx ? 700 : 500,
+                        border: '1px solid',
+                        borderColor: activeSheetIdx === idx ? '#2563eb' : '#cbd5e1',
+                        background: activeSheetIdx === idx ? '#eff6ff' : '#ffffff',
+                        color: activeSheetIdx === idx ? '#1d4ed8' : '#475569',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      📊 {s.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div ref={previewContentRef} style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+                {(() => {
+                  const activeSheet = excelData.sheets[activeSheetIdx] || excelData.sheets[0];
+                  if (!activeSheet || activeSheet.rows.length === 0) {
+                    return <div style={{ color: '#64748b', textAlign: 'center', padding: 40 }}>Trang tính trống.</div>;
+                  }
+                  return (
+                    <>
+                      {activeSheet.truncated && (
+                        <div style={{
+                          marginBottom: 10,
+                          padding: '6px 12px',
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          fontSize: 12,
+                          borderRadius: 6,
+                        }}>
+                          Đang hiển thị {activeSheet.rows.length} / {activeSheet.totalRows} dòng đầu để xem nhanh. Bấm "Tải về" để xem toàn bộ.
+                        </div>
+                      )}
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, background: '#fff' }}>
+                        <tbody>
+                          {activeSheet.rows.map((row, rIdx) => (
+                            <tr key={rIdx} style={{ background: rIdx === 0 ? '#f1f5f9' : rIdx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                              <td style={{
+                                border: '1px solid #cbd5e1',
+                                padding: '5px 8px',
+                                background: '#f8fafc',
+                                color: '#64748b',
+                                textAlign: 'center',
+                                fontWeight: 600,
+                                width: 38,
+                                fontSize: 11,
+                              }}>
+                                {rIdx + 1}
+                              </td>
+                              {Array.from({ length: activeSheet.maxCols }).map((_, cIdx) => (
+                                <td
+                                  key={cIdx}
+                                  style={{
+                                    border: '1px solid #cbd5e1',
+                                    padding: '6px 10px',
+                                    fontWeight: rIdx === 0 ? 700 : 400,
+                                    color: '#0f172a',
+                                    whiteSpace: 'pre-wrap',
+                                    minWidth: 70,
+                                  }}
+                                >
+                                  {row[cIdx] ?? ''}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
           ) : fileType === 'excel' || fileType === 'word' ? (
-            /* THẺ THÔNG TIN TÀI LIỆU VĂN PHÒNG */
+            /* DỰ PHÒNG CHO FILE .DOC ĐỜI CŨ HOẶC KHÔNG THỂ PHÂN TÍCH */
             <div
               style={{
                 maxWidth: 520,
@@ -409,8 +694,7 @@ const DocumentPreviewModal = ({ isOpen, onClose, fileName, url }) => {
                 {fileName}
               </h3>
               <p style={{ color: '#64748b', fontSize: 13.5, lineHeight: 1.6, marginBottom: 24 }}>
-                Đây là tài liệu định dạng <strong>{ext} ({fileType === 'excel' ? 'Bảng tính Excel' : 'Văn bản Word'})</strong>.
-                Để xem chuẩn xác bảng tính, công thức và bố cục, bạn vui lòng tải về để mở trực tiếp trong Microsoft Office hoặc mở qua Google Docs.
+                Định dạng tệp <strong>.{ext}</strong> này chưa hỗ trợ xem trực tiếp trên trình duyệt (chỉ hỗ trợ xem trực tiếp chuẩn mới <code>.docx</code>, <code>.xlsx</code>, <code>.pdf</code>, ảnh). Bạn vui lòng tải về máy để xem đầy đủ nhé.
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
                 <button

@@ -1,6 +1,6 @@
 // src/services/scoreService.js
 import {
-  collection, addDoc, deleteDoc,
+  collection, addDoc, updateDoc, deleteDoc,
   doc, getDoc, getDocs, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
 import { uploadFileSafely, deleteCloudFileChunks } from './storageHelper';
@@ -44,6 +44,37 @@ export const uploadScore = async (file, subjectName, tag, user, academicYear, fo
     user,
   });
   return docRef.id;
+};
+
+export const updateScore = async (id, { subjectName, academicYear, newFile }, user) => {
+  const updateData = {
+    subjectName,
+    academicYear,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (newFile) {
+    try {
+      const snap = await getDoc(doc(db, COL, id));
+      if (snap.exists()) await deleteCloudFileChunks(snap.data().fileUrl);
+    } catch {}
+    const { fileUrl, fileName: uploadedFileName } = await uploadFileSafely('scores', newFile);
+    const finalFileName = uploadedFileName || newFile.fileName || newFile.name || 'Tài liệu bảng điểm';
+    const finalSize = newFile.size || 0;
+    const finalType = finalFileName.includes('.') ? finalFileName.split('.').pop().toLowerCase() : 'gdrive';
+    updateData.fileName = finalFileName;
+    updateData.fileUrl = fileUrl;
+    updateData.fileSize = finalSize;
+    updateData.fileType = finalType;
+  }
+
+  await updateDoc(doc(db, COL, id), updateData);
+  await logAction({
+    action: 'edit',
+    module: 'Điểm',
+    detail: `Sửa hồ sơ điểm: ${subjectName} (Năm: ${academicYear})`,
+    user,
+  });
 };
 
 export const deleteScore = async (id, fileName, user) => {

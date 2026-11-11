@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  getTeachingNorms, addTeachingNorm, deleteTeachingNorm,
-  getTeachingContracts, addTeachingContract, deleteTeachingContract,
+  getTeachingNorms, addTeachingNorm, updateTeachingNorm, deleteTeachingNorm,
+  getTeachingContracts, addTeachingContract, updateTeachingContract, deleteTeachingContract,
 } from '../services/teachingService';
 import {
   getFolders, createFolder, renameFolder, deleteFolder,
@@ -50,10 +50,13 @@ const TeachingPage = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [folderPath, setFolderPath] = useState([]); // [{ id, name }]
 
-  // Modal Thêm dữ liệu
+  // Modal Thêm / Sửa dữ liệu
   const [modalOpen, setModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [form, setForm] = useState(EMPTY_NORM);
   const [files, setFiles] = useState([]);
+  const [existingAttachments, setExistingAttachments] = useState([]);
+  const [removedAttachments, setRemovedAttachments] = useState([]);
   const [saving, setSaving] = useState(false);
 
   // Modal Tạo Thư mục mới
@@ -116,13 +119,55 @@ const TeachingPage = () => {
   const setF = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const openModal = () => {
+    setEditId(null);
     const base = tab === 'norm' ? { ...EMPTY_NORM } : { ...EMPTY_CONTRACT };
     base.academicYear = selectedYear || defYear;
     base.folderId = currentParentId || null;
     base.folderName = currentFolderName || '';
     setForm(base);
     setFiles([]);
+    setExistingAttachments([]);
+    setRemovedAttachments([]);
     setModalOpen(true);
+  };
+
+  const openEdit = (item) => {
+    setEditId(item.id);
+    if (tab === 'norm') {
+      setForm({
+        lecturerName: item.lecturerName || '',
+        title: item.title || 'ThS',
+        department: item.department || '',
+        academicYear: item.academicYear || getTeachingYear(item),
+        norm: item.norm ?? 270,
+        actual: item.actual ?? 0,
+        folderId: item.folderId || null,
+        folderName: item.folderName || '',
+      });
+    } else {
+      setForm({
+        lecturerName: item.lecturerName || '',
+        title: item.title || 'TS',
+        department: item.department || '',
+        subject: item.subject || '',
+        academicYear: item.academicYear || getTeachingYear(item),
+        hours: item.hours ?? 0,
+        folderId: item.folderId || null,
+        folderName: item.folderName || '',
+      });
+    }
+    setFiles([]);
+    setExistingAttachments(Array.isArray(item.attachments) ? item.attachments : []);
+    setRemovedAttachments([]);
+    setModalOpen(true);
+  };
+
+  const handleRemoveExistingAttachment = (idxToRemove) => {
+    const target = existingAttachments[idxToRemove];
+    setExistingAttachments(prev => prev.filter((_, i) => i !== idxToRemove));
+    if (target) {
+      setRemovedAttachments(prev => [...prev, target]);
+    }
   };
 
   const handleSave = async () => {
@@ -138,15 +183,24 @@ const TeachingPage = () => {
     try {
       const payload = {
         ...form,
-        folderId: currentParentId || null,
-        folderName: currentFolderName || '',
+        folderId: editId ? (form.folderId || null) : (currentParentId || null),
+        folderName: editId ? (form.folderName || '') : (currentFolderName || ''),
       };
-      if (tab === 'norm') {
-        await addTeachingNorm(payload, files, user);
+      if (editId) {
+        if (tab === 'norm') {
+          await updateTeachingNorm(editId, payload, existingAttachments, files, removedAttachments, user);
+        } else {
+          await updateTeachingContract(editId, payload, existingAttachments, files, removedAttachments, user);
+        }
+        toast.success('Cập nhật dữ liệu thành công!');
       } else {
-        await addTeachingContract(payload, files, user);
+        if (tab === 'norm') {
+          await addTeachingNorm(payload, files, user);
+        } else {
+          await addTeachingContract(payload, files, user);
+        }
+        toast.success('Thêm dữ liệu thành công!');
       }
-      toast.success('Thêm dữ liệu thành công!');
       setModalOpen(false);
       await load();
       if (selectedYear) {
@@ -611,7 +665,9 @@ const TeachingPage = () => {
                                   ? n.attachments.map((f, i) => <FilePill key={i} fileName={f.name} url={f.url} />)
                                   : <span className="text-muted">—</span>}
                               </td>
-                              <td style={{ textAlign: 'center' }}>
+                              <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                <button className="btn btn-outline btn-xs" onClick={() => openEdit(n)}>Sửa</button>
+                                {' '}
                                 <button className="btn btn-danger btn-xs" onClick={() => handleDelete(n)}>Xóa</button>
                               </td>
                             </tr>
@@ -665,7 +721,9 @@ const TeachingPage = () => {
                                 ? c.attachments.map((f, i) => <FilePill key={i} fileName={f.name} url={f.url} />)
                                 : <span className="text-muted">—</span>}
                             </td>
-                            <td style={{ textAlign: 'center' }}>
+                            <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              <button className="btn btn-outline btn-xs" onClick={() => openEdit(c)}>Sửa</button>
+                              {' '}
                               <button className="btn btn-danger btn-xs" onClick={() => handleDelete(c)}>Xóa</button>
                             </td>
                           </tr>
@@ -733,7 +791,9 @@ const TeachingPage = () => {
                             ? n.attachments.map((f, i) => <FilePill key={i} fileName={f.name} url={f.url} />)
                             : <span className="text-muted">—</span>}
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <button className="btn btn-outline btn-xs" onClick={() => openEdit(n)}>Sửa</button>
+                          {' '}
                           <button className="btn btn-danger btn-xs" onClick={() => handleDelete(n)}>Xóa</button>
                         </td>
                       </tr>
@@ -787,7 +847,9 @@ const TeachingPage = () => {
                           ? c.attachments.map((f, i) => <FilePill key={i} fileName={f.name} url={f.url} />)
                           : <span className="text-muted">—</span>}
                       </td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <button className="btn btn-outline btn-xs" onClick={() => openEdit(c)}>Sửa</button>
+                        {' '}
                         <button className="btn btn-danger btn-xs" onClick={() => handleDelete(c)}>Xóa</button>
                       </td>
                     </tr>
@@ -876,17 +938,23 @@ const TeachingPage = () => {
         </div>
       </Modal>
 
-      {/* ================= MODAL THÊM DỮ LIỆU GIẢNG DẠY ================= */}
+      {/* ================= MODAL THÊM / SỬA DỮ LIỆU GIẢNG DẠY ================= */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={tab === 'norm' ? (currentFolderName ? `Thêm Định mức vào: 📂 ${currentFolderName}` : 'Thêm Khối lượng Định mức') : (currentFolderName ? `Thêm Hợp đồng vào: 📂 ${currentFolderName}` : 'Thêm Khối lượng Hợp đồng')}
+        title={
+          editId
+            ? (tab === 'norm' ? 'Chỉnh sửa Định mức Giảng dạy' : 'Chỉnh sửa Hợp đồng Giảng dạy')
+            : (tab === 'norm'
+              ? (currentFolderName ? `Thêm Định mức vào: 📂 ${currentFolderName}` : 'Thêm Khối lượng Định mức')
+              : (currentFolderName ? `Thêm Hợp đồng vào: 📂 ${currentFolderName}` : 'Thêm Khối lượng Hợp đồng'))
+        }
         size="modal-md"
         footer={
           <>
             <button className="btn btn-outline" onClick={() => setModalOpen(false)}>Hủy bỏ</button>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? 'Đang lưu...' : 'Thêm dữ liệu'}
+              {saving ? 'Đang lưu...' : (editId ? 'Cập nhật' : 'Thêm dữ liệu')}
             </button>
           </>
         }
@@ -895,7 +963,7 @@ const TeachingPage = () => {
         <div className="form-group" style={{ marginBottom: 14 }}>
           <label className="form-label">Thư mục đích lưu trữ</label>
           <div style={{ padding: '8px 12px', background: '#f1f5f9', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>
-            {currentFolderName ? `📂 ${currentFolderName} (Năm học ${form.academicYear || selectedYear || defYear})` : `📁 Năm học ${form.academicYear || selectedYear || defYear}`}
+            {(form.folderName || currentFolderName) ? `📂 ${form.folderName || currentFolderName} (Năm học ${form.academicYear || selectedYear || defYear})` : `📁 Năm học ${form.academicYear || selectedYear || defYear}`}
           </div>
         </div>
 
@@ -953,7 +1021,43 @@ const TeachingPage = () => {
           </div>
         )}
         <div className="form-group">
-          <label className="form-label">Upload file minh chứng (TKB, bảng chấm công...)</label>
+          <label className="form-label">
+            {editId ? 'Tệp minh chứng đính kèm' : 'Upload file minh chứng (TKB, bảng chấm công...)'}
+          </label>
+          {editId && existingAttachments.length > 0 && (
+            <div style={{ marginBottom: 8, padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>
+                File hiện có (bấm × để gỡ bỏ nếu sai):
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {existingAttachments.map((att, idx) => (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <FilePill fileName={att.name} url={att.url} />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExistingAttachment(idx)}
+                      title="Gỡ bỏ tệp này"
+                      style={{
+                        border: 'none',
+                        background: '#fee2e2',
+                        color: '#b91c1c',
+                        borderRadius: '50%',
+                        width: 18,
+                        height: 18,
+                        fontSize: 11,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <UploadArea
             onFileSelect={f => setFiles(prev => [...prev, ...f])}
             onRemoveFile={idx => setFiles(prev => prev.filter((_, i) => i !== idx))}

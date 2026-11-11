@@ -36,6 +36,10 @@ export const updateExpert = async (id, data, contractFile, user) => {
   let updateData = { ...data, updatedAt: serverTimestamp() };
 
   if (contractFile) {
+    try {
+      const snap = await getDoc(doc(db, COL, id));
+      if (snap.exists()) await deleteCloudFileChunks(snap.data().contractFileUrl);
+    } catch {}
     const { fileUrl, fileName } = await uploadFileSafely('contracts', contractFile);
     updateData.contractFileUrl = fileUrl;
     updateData.contractFileName = fileName;

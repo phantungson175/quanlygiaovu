@@ -11,9 +11,9 @@ const COL_NORM = 'teaching_norm';
 const COL_CONTRACT = 'teaching_contract';
 
 // Tải nhiều tệp đính kèm với tổng ngưỡng an toàn cho 1 tài liệu Firestore
-const uploadMultipleAttachmentsSafely = async (pathPrefix, files = []) => {
+const uploadMultipleAttachmentsSafely = async (pathPrefix, files = [], initialUsedChars = 0) => {
   const attachments = [];
-  let remainingBudgetChars = 650 * 1024;
+  let remainingBudgetChars = Math.max(0, 650 * 1024 - initialUsedChars);
   for (const file of files) {
     const { fileUrl, fileName } = await uploadFileSafely(pathPrefix, file, {
       maxDataUrlChars: Math.max(0, remainingBudgetChars),
@@ -37,6 +37,27 @@ const cleanupTeachingAttachments = async (colName, id) => {
   } catch {}
 };
 
+const updateTeachingRecord = async (
+  colName, moduleLabel, pathPrefix,
+  id, data, existingAttachments = [], newFiles = [], removedAttachments = [], user
+) => {
+  const usedChars = existingAttachments.reduce(
+    (sum, a) => sum + (a?.url?.startsWith('data:') ? a.url.length : 0),
+    0
+  );
+  const addedAttachments = await uploadMultipleAttachmentsSafely(pathPrefix, newFiles, usedChars);
+  if (removedAttachments.length > 0) {
+    await Promise.all(removedAttachments.map(a => deleteCloudFileChunks(a?.url)));
+  }
+  const attachments = [...existingAttachments, ...addedAttachments];
+  await updateDoc(doc(db, colName, id), {
+    ...data,
+    attachments,
+    updatedAt: serverTimestamp(),
+  });
+  await logAction({ action: 'edit', module: moduleLabel, detail: `Sửa: ${data.lecturerName}`, user });
+};
+
 // ---- ĐỊNH MỨC ----
 export const getTeachingNorms = async () => {
   const q = query(collection(db, COL_NORM), orderBy('createdAt', 'desc'));
@@ -54,9 +75,11 @@ export const addTeachingNorm = async (data, files, user) => {
   return docRef.id;
 };
 
-export const updateTeachingNorm = async (id, data, user) => {
-  await updateDoc(doc(db, COL_NORM, id), { ...data, updatedAt: serverTimestamp() });
-  await logAction({ action: 'edit', module: 'KLGD Định mức', detail: `Sửa: ${data.lecturerName}`, user });
+export const updateTeachingNorm = async (id, data, existingAttachments, newFiles, removedAttachments, user) => {
+  await updateTeachingRecord(
+    COL_NORM, 'KLGD Định mức', 'teaching/norm',
+    id, data, existingAttachments, newFiles, removedAttachments, user
+  );
 };
 
 export const deleteTeachingNorm = async (id, name, user) => {
@@ -80,6 +103,13 @@ export const addTeachingContract = async (data, files, user) => {
   });
   await logAction({ action: 'add', module: 'KLGD Hợp đồng', detail: `Thêm: ${data.lecturerName}`, user });
   return docRef.id;
+};
+
+export const updateTeachingContract = async (id, data, existingAttachments, newFiles, removedAttachments, user) => {
+  await updateTeachingRecord(
+    COL_CONTRACT, 'KLGD Hợp đồng', 'teaching/contract',
+    id, data, existingAttachments, newFiles, removedAttachments, user
+  );
 };
 
 export const deleteTeachingContract = async (id, name, user) => {

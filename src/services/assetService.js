@@ -38,6 +38,10 @@ export const addAsset = async (data, file, user) => {
 export const updateAsset = async (id, data, file, user) => {
   let updateData = { ...data, updatedAt: serverTimestamp() };
   if (file) {
+    try {
+      const snap = await getDoc(doc(db, COL, id));
+      if (snap.exists()) await deleteCloudFileChunks(snap.data().fileUrl);
+    } catch {}
     const res = await uploadFileSafely('assets', file);
     updateData.fileUrl = res.fileUrl;
     updateData.fileName = res.fileName;

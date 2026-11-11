@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  getIncomingDocs, addIncomingDoc, updateIncomingDocStatus, deleteIncomingDoc,
-  getOutgoingDocs, addOutgoingDoc, updateOutgoingDocStatus, deleteOutgoingDoc,
+  getIncomingDocs, addIncomingDoc, updateIncomingDoc, updateIncomingDocStatus, deleteIncomingDoc,
+  getOutgoingDocs, addOutgoingDoc, updateOutgoingDoc, updateOutgoingDocStatus, deleteOutgoingDoc,
 } from '../services/documentService';
 import {
   getFolders, createFolder, renameFolder, deleteFolder,
@@ -46,10 +46,13 @@ const DocumentsPage = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [folderPath, setFolderPath] = useState([]); // [{ id, name }]
 
-  // Modal Thêm văn bản
+  // Modal Thêm / Sửa văn bản
   const [modalOpen, setModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [form, setForm] = useState(EMPTY_IN);
   const [docFile, setDocFile] = useState(null);
+  const [existingFile, setExistingFile] = useState(null);
+  const [removeExistingFile, setRemoveExistingFile] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Modal Tạo thư mục mới
@@ -145,12 +148,36 @@ const DocumentsPage = () => {
   };
 
   const openModal = () => {
+    setEditId(null);
     const baseForm = tab === 'incoming' ? { ...EMPTY_IN } : { ...EMPTY_OUT };
     if (selectedYear) {
       baseForm.year = selectedYear;
     }
     setForm(baseForm);
     setDocFile(null);
+    setExistingFile(null);
+    setRemoveExistingFile(false);
+    setModalOpen(true);
+  };
+
+  const openEdit = (d) => {
+    setEditId(d.id);
+    setForm({
+      refNo: d.refNo || '',
+      date: d.date || todayStr(),
+      year: d.year || getDocYear(d),
+      sender: d.sender || '',
+      recipient: d.recipient || '',
+      summary: d.summary || '',
+      assignee: d.assignee || '',
+      deadline: d.deadline || '',
+      notes: d.notes || '',
+      folderId: d.folderId || null,
+      folderName: d.folderName || '',
+    });
+    setDocFile(null);
+    setExistingFile(d.fileName ? { fileName: d.fileName, fileUrl: d.fileUrl } : null);
+    setRemoveExistingFile(false);
     setModalOpen(true);
   };
 
@@ -166,15 +193,24 @@ const DocumentsPage = () => {
     try {
       const payload = {
         ...form,
-        folderId: currentParentId || null,
-        folderName: currentFolderName || '',
+        folderId: editId ? (form.folderId || null) : (currentParentId || null),
+        folderName: editId ? (form.folderName || '') : (currentFolderName || ''),
       };
-      if (tab === 'incoming') {
-        await addIncomingDoc(payload, docFile, user);
+      if (editId) {
+        if (tab === 'incoming') {
+          await updateIncomingDoc(editId, payload, docFile, removeExistingFile, user);
+        } else {
+          await updateOutgoingDoc(editId, payload, docFile, removeExistingFile, user);
+        }
+        toast.success('Cập nhật văn bản thành công!');
       } else {
-        await addOutgoingDoc(payload, docFile, user);
+        if (tab === 'incoming') {
+          await addIncomingDoc(payload, docFile, user);
+        } else {
+          await addOutgoingDoc(payload, docFile, user);
+        }
+        toast.success('Thêm văn bản thành công!');
       }
-      toast.success('Thêm văn bản thành công!');
       setModalOpen(false);
       await load();
       if (selectedYear) {
@@ -623,6 +659,8 @@ const DocumentsPage = () => {
                                 : <span className="text-muted">—</span>}
                             </td>
                             <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              <button className="btn btn-outline btn-xs" onClick={() => openEdit(d)}>Sửa</button>
+                              {' '}
                               <button className="btn btn-danger btn-xs" onClick={() => handleDelete(d)}>Xóa</button>
                             </td>
                           </tr>
@@ -694,6 +732,8 @@ const DocumentsPage = () => {
                             : <span className="text-muted">—</span>}
                         </td>
                         <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <button className="btn btn-outline btn-xs" onClick={() => openEdit(d)}>Sửa</button>
+                          {' '}
                           <button className="btn btn-danger btn-xs" onClick={() => handleDelete(d)}>Xóa</button>
                         </td>
                       </tr>
@@ -782,17 +822,17 @@ const DocumentsPage = () => {
         </div>
       </Modal>
 
-      {/* ================= MODAL THÊM VĂN BẢN MỚI ================= */}
+      {/* ================= MODAL THÊM / SỬA VĂN BẢN ================= */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={tab === 'incoming' ? 'Thêm Văn bản Đến' : 'Thêm Văn bản Đi'}
+        title={editId ? (tab === 'incoming' ? 'Chỉnh sửa Văn bản Đến' : 'Chỉnh sửa Văn bản Đi') : (tab === 'incoming' ? 'Thêm Văn bản Đến' : 'Thêm Văn bản Đi')}
         size="modal-lg"
         footer={
           <>
             <button className="btn btn-outline" onClick={() => setModalOpen(false)}>Hủy bỏ</button>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? 'Đang lưu...' : 'Lưu văn bản'}
+              {saving ? 'Đang lưu...' : (editId ? 'Cập nhật văn bản' : 'Lưu văn bản')}
             </button>
           </>
         }
@@ -831,7 +871,7 @@ const DocumentsPage = () => {
         <div className="form-group" style={{ marginBottom: 14 }}>
           <label className="form-label">Thư mục đích lưu trữ</label>
           <div style={{ padding: '8px 12px', background: '#f1f5f9', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>
-            {currentFolderName ? `📂 ${currentFolderName} (Năm ${form.year})` : `📁 Năm ${form.year}`}
+            {(form.folderName || currentFolderName) ? `📂 ${form.folderName || currentFolderName} (Năm ${form.year})` : `📁 Năm ${form.year}`}
           </div>
         </div>
 
@@ -865,8 +905,32 @@ const DocumentsPage = () => {
 
         <div className="form-group" style={{ marginBottom: 14 }}>
           <label className="form-label">File văn bản đính kèm</label>
+          {editId && existingFile && !removeExistingFile && !docFile && (
+            <div style={{ marginBottom: 8, padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Tệp hiện tại:</span>
+                <FilePill fileName={existingFile.fileName} url={existingFile.fileUrl} />
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline btn-xs"
+                onClick={() => setRemoveExistingFile(true)}
+                style={{ color: '#b91c1c', borderColor: '#fecaca' }}
+              >
+                Gỡ bỏ tệp
+              </button>
+            </div>
+          )}
+          {editId && removeExistingFile && !docFile && (
+            <div style={{ marginBottom: 8, fontSize: 12, color: '#b91c1c' }}>
+              Tệp cũ sẽ được gỡ bỏ khi cập nhật (hoặc chọn tệp mới bên dưới để thay thế).
+            </div>
+          )}
           <UploadArea
-            onFileSelect={files => setDocFile(files[0])}
+            onFileSelect={files => {
+              setDocFile(files[0]);
+              if (files[0]) setRemoveExistingFile(false);
+            }}
             allowedTypes={['pdf', 'docx', 'doc', 'jpg', 'jpeg', 'png']}
             accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
             hint="PDF, Word, Ảnh scan – Tối đa 15MB"

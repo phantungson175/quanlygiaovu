@@ -2,7 +2,7 @@
 // Module 2: Quản lý Điểm Đại học (Phân loại theo Năm & Người dùng tự do tạo Thư mục)
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getScores, uploadScore, deleteScore } from '../services/scoreService';
+import { getScores, uploadScore, updateScore, deleteScore } from '../services/scoreService';
 import {
   getFolders, createFolder, renameFolder, deleteFolder,
 } from '../services/folderService';
@@ -42,8 +42,10 @@ const ScoresPage = () => {
   const currentParentId = folderPath.length > 0 ? folderPath[folderPath.length - 1].id : null;
   const currentFolderName = folderPath.length > 0 ? folderPath[folderPath.length - 1].name : null;
 
-  // Modal Upload File
+  // Modal Upload / Sửa File
   const [modalOpen, setModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [subjectName, setSubjectName] = useState('');
   const [academicYear, setAcademicYear] = useState('2025-2026');
@@ -131,39 +133,64 @@ const ScoresPage = () => {
     return result;
   }, [items, selectedYear, currentParentId, search]);
 
-  // Mở modal upload
+  // Mở modal upload mới
   const openModal = () => {
     const curY = new Date().getFullYear();
+    setEditId(null);
+    setEditingItem(null);
     setSelectedFile(null);
     setSubjectName('');
     setAcademicYear(selectedYear || `${curY - 1}-${curY}`);
     setModalOpen(true);
   };
 
+  // Mở modal sửa hồ sơ điểm
+  const openEdit = (item) => {
+    setEditId(item.id);
+    setEditingItem(item);
+    setSelectedFile(null);
+    setSubjectName(item.subjectName || '');
+    setAcademicYear(getScoreYear(item));
+    setModalOpen(true);
+  };
+
   const handleUpload = async () => {
-    if (!selectedFile) { toast.error('Vui lòng chọn file!'); return; }
+    if (!editId && !selectedFile) { toast.error('Vui lòng chọn file!'); return; }
     if (!subjectName.trim()) { toast.error('Vui lòng nhập tên môn học!'); return; }
 
     setUploading(true);
     try {
-      await uploadScore(
-        selectedFile,
-        subjectName.trim(),
-        currentFolderName || 'Chung',
-        user,
-        academicYear,
-        currentParentId || null,
-        currentFolderName || ''
-      );
-      toast.success('Upload file điểm thành công!');
+      if (editId) {
+        await updateScore(
+          editId,
+          {
+            subjectName: subjectName.trim(),
+            academicYear,
+            newFile: selectedFile,
+          },
+          user
+        );
+        toast.success('Cập nhật hồ sơ điểm thành công!');
+      } else {
+        await uploadScore(
+          selectedFile,
+          subjectName.trim(),
+          currentFolderName || 'Chung',
+          user,
+          academicYear,
+          currentParentId || null,
+          currentFolderName || ''
+        );
+        toast.success('Upload file điểm thành công!');
+      }
       setModalOpen(false);
       await load();
       if (selectedYear) {
         await loadFolders(selectedYear, currentParentId);
       }
     } catch (err) {
-      console.error('Lỗi upload file điểm:', err);
-      toast.error('Lỗi khi upload: ' + (err.message || 'Vui lòng thử lại!'));
+      console.error('Lỗi lưu file điểm:', err);
+      toast.error('Lỗi khi lưu: ' + (err.message || 'Vui lòng thử lại!'));
     } finally {
       setUploading(false);
     }
@@ -557,6 +584,8 @@ const ScoresPage = () => {
                               </button>
                             )}
                             {' '}
+                            <button className="btn btn-outline btn-xs" onClick={() => openEdit(f)}>Sửa</button>
+                            {' '}
                             <button className="btn btn-danger btn-xs" onClick={() => handleDelete(f)}>Xóa</button>
                           </td>
                         </tr>
@@ -615,6 +644,8 @@ const ScoresPage = () => {
                             Xem / Tải
                           </button>
                         )}
+                        {' '}
+                        <button className="btn btn-outline btn-xs" onClick={() => openEdit(f)}>Sửa</button>
                         {' '}
                         <button className="btn btn-danger btn-xs" onClick={() => handleDelete(f)}>Xóa</button>
                       </td>
@@ -703,17 +734,17 @@ const ScoresPage = () => {
         </div>
       </Modal>
 
-      {/* ================= MODAL UPLOAD FILE ĐIỂM ================= */}
+      {/* ================= MODAL UPLOAD / SỬA FILE ĐIỂM ================= */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={currentFolderName ? `Upload File Điểm vào: 📂 ${currentFolderName}` : 'Upload File Điểm'}
+        title={editId ? 'Chỉnh sửa Hồ sơ Điểm' : (currentFolderName ? `Upload File Điểm vào: 📂 ${currentFolderName}` : 'Upload File Điểm')}
         size="modal-md"
         footer={
           <>
             <button className="btn btn-outline" onClick={() => setModalOpen(false)}>Hủy bỏ</button>
             <button className="btn btn-primary" onClick={handleUpload} disabled={uploading}>
-              {uploading ? 'Đang upload...' : 'Upload File'}
+              {uploading ? 'Đang lưu...' : (editId ? 'Cập nhật' : 'Upload File')}
             </button>
           </>
         }
@@ -745,12 +776,21 @@ const ScoresPage = () => {
         <div className="form-group" style={{ marginBottom: 14 }}>
           <label className="form-label">Thư mục đích lưu trữ</label>
           <div style={{ padding: '8px 12px', background: '#f1f5f9', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>
-            {currentFolderName ? `📂 ${currentFolderName} (Năm ${academicYear})` : `📁 Năm học ${academicYear}`}
+            {(editingItem?.folderName || currentFolderName) ? `📂 ${editingItem?.folderName || currentFolderName} (Năm ${academicYear})` : `📁 Năm học ${academicYear}`}
           </div>
         </div>
 
         <div className="form-group">
-          <label className="form-label">Chọn file điểm <span className="required">*</span></label>
+          <label className="form-label">
+            Chọn file điểm {!editId && <span className="required">*</span>}
+          </label>
+          {editId && editingItem?.fileName && !selectedFile && (
+            <div style={{ marginBottom: 8, padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Tệp hiện tại:</span>
+              <FilePill fileName={editingItem.fileName} url={editingItem.fileUrl} />
+              <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>(Để trống bên dưới nếu giữ nguyên tệp này)</span>
+            </div>
+          )}
           <UploadArea
             onFileSelect={files => setSelectedFile(files[0])}
             allowedTypes={['pdf', 'xlsx', 'xls', 'docx', 'doc', 'jpg', 'jpeg', 'png']}
