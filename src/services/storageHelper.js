@@ -31,27 +31,27 @@ export const isGoogleDriveFolderUrl = (url) => {
  */
 export const extractGoogleDriveFileId = (url) => {
   if (!url || typeof url !== 'string') return null;
-  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
-                url.match(/id=([a-zA-Z0-9_-]+)/) ||
-                url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/) ||
-                url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/) ||
-                url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  const match = url.match(/\/file\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/) ||
+                url.match(/\/document\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/) ||
+                url.match(/\/spreadsheets\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/) ||
+                url.match(/\/presentation\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/) ||
+                url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   return match ? match[1] : null;
 };
 
 /**
- * Chuyển đổi link Google Drive sang định dạng nhúng xem trước (Iframe Preview)
+ * Chuyển đổi link Google Drive / Docs sang định dạng nhúng xem trước (Iframe Preview)
  */
 export const getGoogleDrivePreviewUrl = (url) => {
   const fileId = extractGoogleDriveFileId(url);
   if (fileId) {
-    if (url.includes('docs.google.com/document/d/')) {
+    if (url.includes('docs.google.com/document/')) {
       return `https://docs.google.com/document/d/${fileId}/preview`;
     }
-    if (url.includes('docs.google.com/spreadsheets/d/')) {
+    if (url.includes('docs.google.com/spreadsheets/')) {
       return `https://docs.google.com/spreadsheets/d/${fileId}/preview`;
     }
-    if (url.includes('docs.google.com/presentation/d/')) {
+    if (url.includes('docs.google.com/presentation/')) {
       return `https://docs.google.com/presentation/d/${fileId}/preview`;
     }
     return `https://drive.google.com/file/d/${fileId}/preview`;
@@ -60,11 +60,20 @@ export const getGoogleDrivePreviewUrl = (url) => {
 };
 
 /**
- * Chuyển đổi link Google Drive sang link tải xuống trực tiếp
+ * Chuyển đổi link Google Drive / Docs sang link tải xuống trực tiếp
  */
 export const getGoogleDriveDownloadUrl = (url) => {
   const fileId = extractGoogleDriveFileId(url);
   if (fileId) {
+    if (url.includes('docs.google.com/document/')) {
+      return `https://docs.google.com/document/d/${fileId}/export?format=docx`;
+    }
+    if (url.includes('docs.google.com/spreadsheets/')) {
+      return `https://docs.google.com/spreadsheets/d/${fileId}/export?format=xlsx`;
+    }
+    if (url.includes('docs.google.com/presentation/')) {
+      return `https://docs.google.com/presentation/d/${fileId}/export?format=pptx`;
+    }
     return `https://drive.google.com/uc?export=download&id=${fileId}`;
   }
   return url;
