@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useConfirm } from '../../context/ConfirmContext';
 import { logout } from '../../services/authService';
 import NotificationDropdown from './NotificationDropdown';
+import UserAvatar from '../common/UserAvatar';
 import toast from 'react-hot-toast';
 
 const PAGE_TITLES = {
@@ -44,9 +45,6 @@ const Topbar = ({
 
   const unread = notifications.filter(n => n.unread);
   const activeName = profile?.displayName || user?.displayName || user?.email || '';
-  const avatarText = activeName
-    ? activeName.split(' ').map(w => w[0]).slice(-2).join('').toUpperCase()
-    : (user?.email?.[0] || '?').toUpperCase();
 
   return (
     <header className="topbar">
@@ -94,11 +92,13 @@ const Topbar = ({
             style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
             title="Bấm để xem và sửa thông tin cá nhân (Mã CB, SĐT, Phòng ban)"
           >
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
-            ) : (
-              <div className="user-avatar" style={{ background: isAdmin ? 'var(--danger)' : 'var(--primary)' }}>{avatarText}</div>
-            )}
+            <UserAvatar
+              photoURL={user?.photoURL}
+              name={activeName}
+              email={user?.email}
+              isAdmin={isAdmin}
+              size={32}
+            />
             <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', lineHeight: 1.25 }}>
               <span style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13 }}>
                 {activeName}

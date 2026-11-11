@@ -7,6 +7,7 @@ import { formatTimestamp } from '../../utils/dateUtils';
 import toast from 'react-hot-toast';
 
 import Modal from './Modal';
+import UserAvatar from './UserAvatar';
 
 const ProfileModal = ({ isOpen, onClose }) => {
   const { user, profile, isAdmin, refreshUser } = useAuth();
@@ -53,10 +54,6 @@ const ProfileModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const avatarText = form.displayName
-    ? form.displayName.split(' ').map(w => w[0]).slice(-2).join('').toUpperCase()
-    : (user?.email?.[0] || '?').toUpperCase();
-
   return (
     <Modal
       open={isOpen}
@@ -77,18 +74,14 @@ const ProfileModal = ({ isOpen, onClose }) => {
             padding: '14px 16px',
             marginBottom: 18,
           }}>
-            <div
-              className="user-avatar"
-              style={{
-                width: 52,
-                height: 52,
-                fontSize: 18,
-                background: isAdmin ? 'var(--danger)' : 'var(--primary)',
-                flexShrink: 0,
-              }}
-            >
-              {avatarText}
-            </div>
+            <UserAvatar
+              photoURL={user?.photoURL}
+              name={form.displayName}
+              email={user?.email}
+              isAdmin={isAdmin}
+              size={52}
+              fontSize={18}
+            />
 
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
